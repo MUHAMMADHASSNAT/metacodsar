@@ -1,0 +1,9 @@
+{
+  "name": "Admin User",
+  "email": "admin@metacodsar.com",
+  "password": "$2a$10$example_hashed_password",
+  "phone": "+1234567890",
+  "designation": "Administrator",
+  "role": "admin",
+  "isActive": true
+}
