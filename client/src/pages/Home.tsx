@@ -1,6 +1,5 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Code, Smartphone, Cloud, Users } from 'lucide-react';
+import { ArrowRight, Code, Smartphone, Cloud } from 'lucide-react';
 
 const Home = () => {
   return (
