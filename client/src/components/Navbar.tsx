@@ -1,47 +1,85 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import MetaCodSarLogo from './MetaCodSarLogo';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = React.useState(false);
+  const { isAuthenticated, user, logout } = useAuth();
 
   return (
-    <nav className="bg-white shadow-lg">
+    <nav className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 shadow-xl border-b border-emerald-500/20">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
-            <Link to="/" className="flex-shrink-0 flex items-center">
-              <span className="text-2xl font-bold text-blue-600">MetaCodsar</span>
+            <Link to="/" className="flex-shrink-0 flex items-center space-x-3 group">
+              <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-green-600 rounded-full flex items-center justify-center shadow-lg group-hover:shadow-emerald-500/50 transition-all">
+                <MetaCodSarLogo size={24} />
+              </div>
+              <span className="text-2xl font-bold bg-gradient-to-r from-emerald-400 via-green-400 to-emerald-300 bg-clip-text text-transparent">MetaCodsar</span>
             </Link>
           </div>
           
           <div className="hidden md:flex items-center space-x-8">
-            <Link to="/" className="text-gray-700 hover:text-blue-600 px-3 py-2">Home</Link>
-            <Link to="/about" className="text-gray-700 hover:text-blue-600 px-3 py-2">About</Link>
-            <Link to="/services" className="text-gray-700 hover:text-blue-600 px-3 py-2">Services</Link>
-            <Link to="/portfolio" className="text-gray-700 hover:text-blue-600 px-3 py-2">Portfolio</Link>
-            <Link to="/team" className="text-gray-700 hover:text-blue-600 px-3 py-2">Team</Link>
-            <Link to="/contact" className="text-gray-700 hover:text-blue-600 px-3 py-2">Contact</Link>
-            <Link to="/login" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Login</Link>
+            <Link to="/" className="text-slate-300 hover:text-emerald-400 px-3 py-2 transition-colors font-medium">Home</Link>
+            <Link to="/about" className="text-slate-300 hover:text-emerald-400 px-3 py-2 transition-colors font-medium">About</Link>
+            <Link to="/services" className="text-slate-300 hover:text-emerald-400 px-3 py-2 transition-colors font-medium">Services</Link>
+            <Link to="/projects" className="text-slate-300 hover:text-emerald-400 px-3 py-2 transition-colors font-medium">Projects</Link>
+            <Link to="/team" className="text-slate-300 hover:text-emerald-400 px-3 py-2 transition-colors font-medium">Team</Link>
+            <Link to="/contact" className="text-slate-300 hover:text-emerald-400 px-3 py-2 transition-colors font-medium">Contact</Link>
+            
+            {isAuthenticated ? (
+              <>
+                <Link to="/admin" className="bg-gradient-to-r from-emerald-600 to-green-600 text-white px-4 py-2 rounded-lg hover:from-emerald-700 hover:to-green-700 transition-all shadow-lg font-medium">
+                  Dashboard
+                </Link>
+                <span className="text-emerald-300 px-3 py-2 font-medium">Welcome, {user?.name}</span>
+                <button 
+                  onClick={logout}
+                  className="bg-gradient-to-r from-red-600 to-rose-600 text-white px-4 py-2 rounded-lg hover:from-red-700 hover:to-rose-700 transition-all shadow-lg font-medium"
+                >
+                  Logout
+                </button>
+              </>
+            ) : (
+              <Link to="/login" className="bg-gradient-to-r from-emerald-600 to-green-600 text-white px-4 py-2 rounded-lg hover:from-emerald-700 hover:to-green-700 transition-all shadow-lg font-medium">Login</Link>
+            )}
           </div>
 
           <div className="md:hidden flex items-center">
-            <button onClick={() => setIsOpen(!isOpen)} className="text-gray-700">
+            <button onClick={() => setIsOpen(!isOpen)} className="text-emerald-400 hover:text-emerald-300">
               {isOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
           </div>
         </div>
 
         {isOpen && (
-          <div className="md:hidden">
+          <div className="md:hidden bg-slate-800 border-t border-emerald-500/20">
             <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-              <Link to="/" className="block text-gray-700 hover:text-blue-600 px-3 py-2">Home</Link>
-              <Link to="/about" className="block text-gray-700 hover:text-blue-600 px-3 py-2">About</Link>
-              <Link to="/services" className="block text-gray-700 hover:text-blue-600 px-3 py-2">Services</Link>
-              <Link to="/portfolio" className="block text-gray-700 hover:text-blue-600 px-3 py-2">Portfolio</Link>
-              <Link to="/team" className="block text-gray-700 hover:text-blue-600 px-3 py-2">Team</Link>
-              <Link to="/contact" className="block text-gray-700 hover:text-blue-600 px-3 py-2">Contact</Link>
-              <Link to="/login" className="block bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700">Login</Link>
+              <Link to="/" className="block text-slate-300 hover:text-emerald-400 px-3 py-2 rounded transition-colors">Home</Link>
+              <Link to="/about" className="block text-slate-300 hover:text-emerald-400 px-3 py-2 rounded transition-colors">About</Link>
+              <Link to="/services" className="block text-slate-300 hover:text-emerald-400 px-3 py-2 rounded transition-colors">Services</Link>
+              <Link to="/portfolio" className="block text-slate-300 hover:text-emerald-400 px-3 py-2 rounded transition-colors">Portfolio</Link>
+              <Link to="/team" className="block text-slate-300 hover:text-emerald-400 px-3 py-2 rounded transition-colors">Team</Link>
+              <Link to="/contact" className="block text-slate-300 hover:text-emerald-400 px-3 py-2 rounded transition-colors">Contact</Link>
+              
+              {isAuthenticated ? (
+                <>
+                  <Link to="/admin" className="block bg-gradient-to-r from-emerald-600 to-green-600 text-white px-3 py-2 rounded-lg hover:from-emerald-700 hover:to-green-700 transition-all">
+                    Dashboard
+                  </Link>
+                  <span className="block text-emerald-300 px-3 py-2">Welcome, {user?.name}</span>
+                  <button 
+                    onClick={logout}
+                    className="block w-full text-left bg-gradient-to-r from-red-600 to-rose-600 text-white px-3 py-2 rounded-lg hover:from-red-700 hover:to-rose-700 transition-all"
+                  >
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <Link to="/login" className="block bg-gradient-to-r from-emerald-600 to-green-600 text-white px-3 py-2 rounded-lg hover:from-emerald-700 hover:to-green-700 transition-all">Login</Link>
+              )}
             </div>
           </div>
         )}

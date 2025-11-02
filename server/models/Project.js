@@ -21,6 +21,10 @@ const projectSchema = new mongoose.Schema({
   githubUrl: {
     type: String
   },
+  category: {
+    type: String,
+    default: 'web'
+  },
   isActive: {
     type: Boolean,
     default: true
