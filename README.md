@@ -1,207 +1,187 @@
-# MetaCodsar - Complete Admin Dashboard
+# 🚀 MetaCodsar - Professional Software Development Company
 
-## 🚀 Quick Start
-
-### Method 1: Using Startup Scripts (Recommended)
-
-**Windows PowerShell:**
-```powershell
-.\start-app.ps1
-```
-
-**Windows Batch File:**
-```cmd
-start-app.bat
-```
-
-Ya double-click `start-app.bat` file.
-
-Startup script automatically:
-- ✅ Checks and frees port 5001 if needed
-- ✅ Starts server on port 5001
-- ✅ Tests server connection
-- ✅ Starts client on port 5173
-
-### Method 2: Manual Start
-
-#### Start Server:
-```bash
-cd server
-npm install
-npm start
-```
-Server will run on: `http://localhost:5001`
-
-#### Start Client (in new terminal):
-```bash
-cd client
-npm install
-npm run dev
-```
-Client will run on: `http://localhost:5173`
-
-## 🔐 Login Credentials
-
-**Admin Login:**
-- Email: `admin@metacodsar.com`
-- Password: `password`
-
-**Team Login:**
-- Use your team member credentials
-- Or register through admin dashboard
-
-## ✨ Features
-
-### ✅ **Authentication System**
-- JWT-based secure login
-- Session persistence
-- Protected admin routes
-- Automatic logout functionality
-
-### ✅ **Admin Dashboard**
-- **Team Management**: Add, edit, remove team members
-- **Profile Update**: Update your own profile (name, email, phone, designation)
-- **Real-time Stats**: Dynamic team member count
-- **Responsive Design**: Works on all devices
-
-### ✅ **Team Management Features**
-- **Add Team Member**: Complete form with validation
-- **Edit Team Member**: Update existing member information
-- **Remove Team Member**: Soft delete with confirmation
-- **View Team List**: Table view with all member details
-
-### ✅ **Profile Management**
-- **Update Profile**: Change name, email, phone, designation
-- **Real-time Updates**: Changes reflect immediately
-- **Form Validation**: Proper input validation
-
-## 🛠️ Technical Details
-
-### **Frontend (React + TypeScript)**
-- Authentication Context for state management
-- Protected routes with role-based access
-- Modern UI with Tailwind CSS
-- Responsive design
-
-### **Backend (Node.js + Express)**
-- JWT authentication
-- MongoDB database
-- RESTful API endpoints
-- Password hashing with bcrypt
-
-### **API Endpoints**
-- `POST /api/auth/login` - User login
-- `PUT /api/auth/profile` - Update profile
-- `GET /api/team` - Get team members
-- `POST /api/team` - Add team member
-- `PUT /api/team/:id` - Update team member
-- `DELETE /api/team/:id` - Remove team member
+Modern web application built with React, Node.js, and MongoDB.
 
 ## 📁 Project Structure
 
 ```
 metacodsar/
-├── client/                 # React frontend
-│   ├── src/
-│   │   ├── contexts/       # Authentication context
-│   │   ├── components/     # Reusable components
-│   │   └── pages/         # Page components
-├── server/                 # Node.js backend
-│   ├── models/            # Database models
-│   ├── routes/            # API routes
-│   └── index.js           # Server entry point
-└── start-app.bat          # Quick start script
+├── client/          # Frontend React application (Vite)
+│   ├── src/         # Source files
+│   ├── dist/        # Build output
+│   └── vercel.json  # Vercel configuration
+│
+├── server/          # Backend Express API
+│   ├── api/         # Vercel serverless entry point
+│   ├── routes/      # API routes
+│   ├── models/      # MongoDB models
+│   ├── uploads/     # Uploaded files
+│   └── vercel.json  # Vercel configuration
+│
+├── scripts/        # Development scripts
+└── README.md       # This file
 ```
 
-## 🔧 Troubleshooting
+## 🚀 Quick Start (Local Development)
 
-### **Port 5001 Already in Use Error**
+### Prerequisites
+- Node.js 18+ 
+- MongoDB (local or MongoDB Atlas)
+- npm or yarn
 
-**Option 1: Use Free Port Script (Easiest)**
-```bash
-cd server
-node free-port.js
-```
+### Installation
 
-**Option 2: Manual Port Cleanup**
-```powershell
-# Find process using port 5001
-netstat -ano | findstr :5001
-
-# Kill the process (replace <PID> with actual process ID)
-taskkill /F /PID <PID> /T
-```
-
-**Option 3: Kill All Node Processes**
-```bash
-taskkill /F /IM node.exe
-```
-
-### **Server Connection Failed / Login Not Working**
-
-1. **Check if Server is Running:**
+1. **Clone the repository**
    ```bash
-   # Test server health
-   curl http://localhost:5001/api/health
-   # Ya browser mein open karein: http://localhost:5001/api/health
+   git clone <repository-url>
+   cd metacodsar
    ```
 
-2. **Restart Server:**
+2. **Install dependencies**
    ```bash
+   # Install client dependencies
+   cd client
+   npm install
+   
+   # Install server dependencies
+   cd ../server
+   npm install
+   ```
+
+3. **Setup Environment Variables**
+
+   Create `server/.env`:
+   ```env
+   MONGODB_URI=mongodb://localhost:27017/metacodsar
+   JWT_SECRET=your-secret-key
+   PORT=5001
+   ```
+
+   Create `client/.env`:
+   ```env
+   VITE_API_URL=http://localhost:5001
+   ```
+
+4. **Start Development Servers**
+
+   **Option 1: Use startup scripts**
+   ```bash
+   # Windows
+   start-app.bat
+   
+   # Or PowerShell
+   start-app.ps1
+   ```
+
+   **Option 2: Manual start**
+   ```bash
+   # Terminal 1 - Server
    cd server
    npm start
+   
+   # Terminal 2 - Client
+   cd client
+   npm run dev
    ```
 
-3. **Check Browser Console:**
-   - F12 press karein
-   - Console tab check karein for errors
-   - Network tab mein API calls check karein
+5. **Access the application**
+   - Frontend: http://localhost:5173
+   - Backend API: http://localhost:5001
+   - Health Check: http://localhost:5001/api/health
 
-4. **Verify Ports:**
-   - Server: Port 5001
-   - Client: Port 5173
-   - Both should be accessible
+## 🌐 Deployment to Vercel
 
-### **MongoDB Connection Issues**
-- MongoDB optional hai - server MongoDB ke bina bhi chalega
-- Agar MongoDB chahiye, ensure it's running
-- Check connection string in server/index.js
+Detailed deployment guide: [VERCEL-DEPLOYMENT.md](./VERCEL-DEPLOYMENT.md)
 
-### **CORS Errors**
-- Server already configured with proper CORS
-- Agar issue ho, check `server/index.js` mein CORS origin settings
+### Quick Steps:
 
-### **Client Not Connecting to Server**
-1. Ensure both server and client are running
-2. Check Vite proxy in `client/vite.config.ts`
-3. Clear browser cache and restart
-4. Try accessing server directly: `http://localhost:5001/api/health`
+1. **Deploy Server** (Backend API)
+   - Root Directory: `server`
+   - Framework: Other
+   - Add MongoDB URI and JWT_SECRET in environment variables
 
-## 🎯 How to Use
+2. **Deploy Client** (Frontend)
+   - Root Directory: `client`
+   - Framework: Vite
+   - Add `VITE_API_URL` pointing to deployed server URL
 
-1. **Login**: Use admin credentials to access dashboard
-2. **Add Members**: Click "Add Team Member" button
-3. **Edit Members**: Click "Edit" button next to any member
-4. **Remove Members**: Click "Remove" button (with confirmation)
-5. **Update Profile**: Click "Update Profile" button
-6. **Logout**: Click "Logout" button
+## 📚 Features
 
-## 📱 Responsive Design
+- ✅ User Authentication (Admin & Team)
+- ✅ Project Management
+- ✅ Team Management
+- ✅ Contact Form
+- ✅ Statistics Dashboard
+- ✅ File Upload (Images)
+- ✅ Responsive Design
 
-The application is fully responsive and works on:
-- Desktop computers
-- Tablets
-- Mobile phones
+## 🔐 Default Credentials
 
-## 🔒 Security Features
+**Admin Login:**
+- Email: `admin@metacodsar.com`
+- Password: `password`
 
-- JWT token authentication
-- Password hashing
-- Protected API routes
-- Input validation
-- CORS configuration
+*(Change password after first login in production!)*
+
+## 🛠️ Tech Stack
+
+### Frontend
+- React 19
+- TypeScript
+- Vite
+- Tailwind CSS
+- React Router
+- Lucide Icons
+
+### Backend
+- Node.js
+- Express.js
+- MongoDB
+- Mongoose
+- JWT Authentication
+- Multer (File Upload)
+
+## 📝 Available Scripts
+
+### Client
+```bash
+npm run dev      # Start development server
+npm run build    # Build for production
+npm run preview  # Preview production build
+npm run lint     # Run ESLint
+```
+
+### Server
+```bash
+npm start        # Start production server
+npm run dev      # Start with nodemon (auto-reload)
+```
+
+## 🐛 Troubleshooting
+
+### Server won't start
+- Check if port 5001 is available
+- Run `node server/free-port.js` to free the port
+- Check MongoDB connection
+
+### Build errors
+- Delete `node_modules` and reinstall
+- Check TypeScript version compatibility
+- Verify all environment variables are set
+
+### Login issues
+- Verify server is running: http://localhost:5001/api/health
+- Check browser console for errors
+- Verify JWT_SECRET is set in server
+
+## 📄 License
+
+This project is private and proprietary.
+
+## 👥 Contributors
+
+MetaCodsar Development Team
 
 ---
 
-**Note**: Make sure MongoDB is running before starting the application. The admin user is automatically created when you run the seed script.
-
+For detailed deployment instructions, see [VERCEL-DEPLOYMENT.md](./VERCEL-DEPLOYMENT.md)
