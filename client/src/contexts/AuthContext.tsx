@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
+import type { ReactNode, FC } from 'react';
 
 // Use proxy in development, full URL in production
 const API_BASE_URL = import.meta.env.DEV ? '' : 'http://localhost:5001';
@@ -81,7 +82,7 @@ const checkServerHealth = async (retries = 3): Promise<boolean> => {
   return false;
 };
 
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);

@@ -1,32 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   User, 
   Mail, 
   Phone, 
   Briefcase, 
-  Upload, 
   Save, 
   X, 
   Plus, 
-  Eye, 
-  EyeOff, 
   Code, 
   Smartphone, 
   Cloud, 
   Database, 
   Shield, 
-  Globe, 
-  Calendar, 
+  Globe,
   Award, 
   TrendingUp, 
   Settings, 
   LogOut,
-  CheckCircle,
-  AlertCircle,
-  ExternalLink,
   Github,
-  Lock
+  Lock,
+  Trash2
 } from 'lucide-react';
 
 // Use proxy in development, full URL in production

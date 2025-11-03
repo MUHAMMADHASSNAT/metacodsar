@@ -1,5 +1,4 @@
-import React from 'react';
-import { Code, Smartphone, Cloud, Zap, Shield, Globe, Database, Cpu } from 'lucide-react';
+import { Code, Smartphone, Cloud, Zap, Shield, Database } from 'lucide-react';
 
 const Services = () => {
   const services = [

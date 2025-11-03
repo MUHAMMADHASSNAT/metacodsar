@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { User, Mail, Phone, Github, Linkedin, Calendar, Award, Code, Smartphone, Cloud, Database, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { User, Github, Linkedin, Calendar, Award, Code, Smartphone, Cloud, Database, X } from 'lucide-react';
 
 // Use proxy in development, full URL in production
 const API_BASE_URL = import.meta.env.DEV ? '' : 'http://localhost:5001';
@@ -114,14 +114,19 @@ const Team = () => {
               <div className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300 shadow-lg">
                 <Award className="text-white" size={32} />
               </div>
-              <h3 className="text-3xl font-bold text-gray-900 mb-2">{teamMembers.reduce((sum, member) => sum + member.projects, 0)}</h3>
+              <h3 className="text-3xl font-bold text-gray-900 mb-2">{teamMembers.reduce((sum, member) => sum + (member.projects || 0), 0)}</h3>
               <p className="text-gray-600 font-medium">Projects Completed</p>
             </div>
             <div className="group">
               <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300 shadow-lg">
                 <Calendar className="text-white" size={32} />
               </div>
-              <h3 className="text-3xl font-bold text-gray-900 mb-2">{Math.max(...teamMembers.map(m => parseInt(m.experience)))}+</h3>
+              <h3 className="text-3xl font-bold text-gray-900 mb-2">
+                {teamMembers.length > 0 
+                  ? Math.max(...teamMembers.map(m => parseInt(m.experience || '0') || 0)) + '+' 
+                  : '0+'
+                }
+              </h3>
               <p className="text-gray-600 font-medium">Years Experience</p>
             </div>
             <div className="group">
@@ -161,7 +166,7 @@ const Team = () => {
                       </div>
                       <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                         <div className="flex space-x-2 bg-white/90 backdrop-blur-sm px-3 py-2 rounded-full shadow-lg">
-                        {member.socialLinks.github && (
+                        {member.socialLinks?.github && (
                           <a
                             href={member.socialLinks.github}
                             target="_blank"
@@ -171,7 +176,7 @@ const Team = () => {
                             <Github className="text-white" size={16} />
                           </a>
                         )}
-                        {member.socialLinks.linkedin && (
+                        {member.socialLinks?.linkedin && (
                           <a
                             href={member.socialLinks.linkedin}
                             target="_blank"
@@ -198,7 +203,7 @@ const Team = () => {
                     <div className="mb-4">
                       <h4 className="text-sm font-semibold text-gray-700 mb-2">Skills</h4>
                       <div className="flex flex-wrap gap-2">
-                        {member.skills.slice(0, 4).map((skill, index) => {
+                        {(member.skills || []).slice(0, 4).map((skill, index) => {
                           const IconComponent = getSkillIcon(skill);
                           return (
                             <span
@@ -210,9 +215,9 @@ const Team = () => {
                             </span>
                           );
                         })}
-                        {member.skills.length > 4 && (
+                        {(member.skills?.length || 0) > 4 && (
                           <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
-                            +{member.skills.length - 4} more
+                            +{(member.skills?.length || 0) - 4} more
                           </span>
                         )}
                       </div>
@@ -298,7 +303,7 @@ const Team = () => {
               <div className="mb-6">
                 <h3 className="font-semibold text-gray-900 mb-3">Skills</h3>
                 <div className="flex flex-wrap gap-2">
-                  {selectedMember.skills.map((skill, index) => {
+                  {(selectedMember.skills || []).map((skill, index) => {
                     const IconComponent = getSkillIcon(skill);
                     return (
                       <span
@@ -314,7 +319,7 @@ const Team = () => {
               </div>
 
               <div className="flex space-x-3">
-                {selectedMember.socialLinks.github && (
+                {selectedMember.socialLinks?.github && (
                   <a
                     href={selectedMember.socialLinks.github}
                     target="_blank"
@@ -325,7 +330,7 @@ const Team = () => {
                     <span>GitHub</span>
                   </a>
                 )}
-                {selectedMember.socialLinks.linkedin && (
+                {selectedMember.socialLinks?.linkedin && (
                   <a
                     href={selectedMember.socialLinks.linkedin}
                     target="_blank"

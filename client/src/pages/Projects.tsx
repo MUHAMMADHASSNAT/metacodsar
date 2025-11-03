@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { ExternalLink, Github, Calendar, User, Filter, Search, Eye, Code, Smartphone, Cloud } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ExternalLink, Github, Calendar, User, Search, Eye, Code, Smartphone, Cloud } from 'lucide-react';
 
 // Use proxy in development, full URL in production
 const API_BASE_URL = import.meta.env.DEV ? '' : 'http://localhost:5001';
@@ -51,7 +51,7 @@ const Projects = () => {
           description: project.description,
           image: project.imageUrl 
             ? (project.imageUrl.startsWith('http') ? project.imageUrl : `http://localhost:5001${project.imageUrl.startsWith('/') ? '' : '/'}${project.imageUrl}`)
-            : project.image || 'https://via.placeholder.com/400x225/4F46E5/FFFFFF?text=' + encodeURIComponent(project.title),
+            : project.image || 'https://via.placeholder.com/400x225/4F46E5/FFFFFF?text=' + encodeURIComponent(project.title || 'Project'),
           technologies: Array.isArray(project.technologies) ? project.technologies : [],
           githubUrl: project.githubUrl || '',
           liveUrl: project.liveUrl || '',
@@ -193,16 +193,16 @@ const Projects = () => {
                     {/* Project Image */}
                     <div className="relative overflow-hidden">
                       <img
-                        src={project.image}
+                        src={project.image || 'https://via.placeholder.com/400x225/4F46E5/FFFFFF?text=Project'}
                         onError={(e) => {
-                          (e.target as HTMLImageElement).src = `https://via.placeholder.com/400x225/4F46E5/FFFFFF?text=${encodeURIComponent(project.title)}`;
+                          (e.target as HTMLImageElement).src = `https://via.placeholder.com/400x225/4F46E5/FFFFFF?text=${encodeURIComponent(project.title || 'Project')}`;
                         }}
-                        alt={project.title}
+                        alt={project.title || 'Project'}
                         className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-300"
                       />
                       <div className="absolute top-4 right-4">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold text-white bg-gradient-to-r ${getCategoryColor(project.category)}`}>
-                          {project.category.toUpperCase()}
+                        <span className={`px-3 py-1 rounded-full text-xs font-semibold text-white bg-gradient-to-r ${getCategoryColor(project.category || 'web')}`}>
+                          {(project.category || 'web').toUpperCase()}
                         </span>
                       </div>
                     </div>
@@ -234,7 +234,7 @@ const Projects = () => {
                         </div>
                         <div className="flex items-center space-x-2">
                           <Calendar size={16} />
-                          <span>{new Date(project.createdAt).toLocaleDateString()}</span>
+                          <span>{project.createdAt && typeof project.createdAt === 'string' ? new Date(project.createdAt).toLocaleDateString() : 'N/A'}</span>
                         </div>
                       </div>
 
