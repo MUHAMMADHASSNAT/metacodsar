@@ -12,15 +12,13 @@ import {
   Smartphone, 
   Cloud, 
   Database, 
-  Shield, 
-  Globe,
+  Shield,
   Award, 
   TrendingUp, 
   Settings, 
   LogOut,
   Github,
-  Lock,
-  Trash2
+  Lock
 } from 'lucide-react';
 
 // Use proxy in development, full URL in production
