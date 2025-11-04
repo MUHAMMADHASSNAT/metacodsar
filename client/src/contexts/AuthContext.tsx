@@ -119,28 +119,22 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     try {
       setIsLoading(true);
       
-      // Check server health first
-      console.log('Checking server connection...');
-      const isServerRunning = await checkServerHealth();
+      // Check server health first (skip in production if no API URL configured)
+      const isProduction = import.meta.env.PROD;
+      let isServerRunning = false;
       
-      if (!isServerRunning) {
-        const isProduction = import.meta.env.PROD;
-        let errorMsg = '❌ Server Connection Failed!\n\n';
+      if (isProduction && !API_BASE_URL) {
+        // Production without API URL: skip health check, try direct login
+        console.warn('⚠️ VITE_API_URL not set in production, skipping health check and trying direct login');
+        isServerRunning = true; // Allow login attempt
+      } else {
+        console.log('Checking server connection...');
+        isServerRunning = await checkServerHealth();
         
-        if (isProduction) {
-          errorMsg += 'Production server se connect nahi ho raha.\n\n' +
-            '🔧 Fix karne ke liye:\n\n' +
-            '1️⃣  Vercel Dashboard mein check karein:\n' +
-            '   - Environment Variables → VITE_API_URL set hai?\n' +
-            '   - Server URL sahi hai?\n\n' +
-            '2️⃣  Agar VITE_API_URL missing hai:\n' +
-            '   - Vercel Dashboard → Settings → Environment Variables\n' +
-            '   - Add: VITE_API_URL = your-server-url\n' +
-            '   - Redeploy karein\n\n' +
-            '3️⃣  Server logs check karein Vercel dashboard mein\n\n' +
-            '✅ Config fix ke baad phir se login karein!';
-        } else {
-          errorMsg += 'Server port 5001 par nahi chal raha.\n\n' +
+        if (!isServerRunning && !isProduction) {
+          // Only show error in development
+          const errorMsg = '❌ Server Connection Failed!\n\n' +
+            'Server port 5001 par nahi chal raha.\n\n' +
             '🔧 Fix karne ke liye:\n\n' +
             '1️⃣  Root folder mein "start-app.bat" ya "start-app.ps1" run karein\n' +
             '   Ya manually:\n' +
@@ -152,28 +146,37 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
             '   node free-port.js\n' +
             '   npm start\n\n' +
             '✅ Server start hone ke baad phir se login karein!';
+          
+          alert(errorMsg);
+          setIsLoading(false);
+          return false;
+        } else if (!isServerRunning && isProduction) {
+          // Production: show warning but allow login attempt
+          console.warn('⚠️ Server health check failed, but proceeding with login attempt');
+          console.warn('If login fails, check VITE_API_URL in Vercel environment variables');
         }
-        
-        console.error('Server Connection Failed:', {
-          API_BASE_URL,
-          isProduction,
-          env: import.meta.env
-        });
-        
-        alert(errorMsg);
-        setIsLoading(false);
-        return false;
       }
       
-      console.log('✅ Server connection successful!');
+      if (isServerRunning) {
+        console.log('✅ Server connection successful!');
+      }
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
       
-      // Try proxy first, then direct connection
+      // Build login URL
+      const loginUrl = API_BASE_URL 
+        ? `${API_BASE_URL}/api/auth/login`
+        : isProduction 
+          ? '/api/auth/login' // Production: relative path (will fail if server is separate project)
+          : 'http://localhost:5001/api/auth/login'; // Dev: direct connection
+      
+      console.log('Attempting login to:', loginUrl);
+      
+      // Try login request
       let response;
       try {
-        response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+        response = await fetch(loginUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -182,11 +185,30 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
           signal: controller.signal,
           mode: 'cors',
         });
-      } catch (proxyError) {
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId);
+        
+        // If production and no API_BASE_URL, show helpful error
+        if (isProduction && !API_BASE_URL) {
+          const errorMsg = '❌ Server URL not configured!\n\n' +
+            'VITE_API_URL environment variable missing in Vercel.\n\n' +
+            '🔧 Fix karne ke liye:\n\n' +
+            '1️⃣  Vercel Dashboard → Client Project → Settings → Environment Variables\n' +
+            '2️⃣  Add New Variable:\n' +
+            '   Name: VITE_API_URL\n' +
+            '   Value: https://your-server-project.vercel.app\n' +
+            '   (Replace with your actual server URL)\n' +
+            '3️⃣  Redeploy karein\n\n' +
+            '✅ Config fix ke baad phir se login karein!';
+          
+          alert(errorMsg);
+          setIsLoading(false);
+          return false;
+        }
+        
         // If API_BASE_URL fails and we're in dev, try direct connection
         if (import.meta.env.DEV) {
           console.log('Proxy failed, trying direct connection...');
-          clearTimeout(timeoutId);
           const directController = new AbortController();
           const directTimeout = setTimeout(() => directController.abort(), 10000);
           
@@ -202,7 +224,7 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
           
           clearTimeout(directTimeout);
         } else {
-          throw proxyError;
+          throw fetchError;
         }
       }
       
