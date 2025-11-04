@@ -3,6 +3,8 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
 const multer = require('multer');
+const bcrypt = require('bcryptjs');
+const User = require('../models/User');
 
 const app = express();
 
@@ -65,8 +67,33 @@ if (MONGODB_URI) {
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })
-  .then(() => {
+  .then(async () => {
     console.log('✅ MongoDB connected successfully');
+    
+    // Auto-create admin user if it doesn't exist
+    try {
+      const existingAdmin = await User.findOne({ email: 'admin@metacodsar.com' });
+      if (!existingAdmin) {
+        const hashedPassword = await bcrypt.hash('password', 10);
+        const admin = new User({
+          name: 'Admin User',
+          email: 'admin@metacodsar.com',
+          password: hashedPassword,
+          phone: '+1234567890',
+          designation: 'System Administrator',
+          role: 'admin',
+          isActive: true
+        });
+        await admin.save();
+        console.log('✅ Admin user created successfully');
+        console.log('   Email: admin@metacodsar.com');
+        console.log('   Password: password');
+      } else {
+        console.log('ℹ️  Admin user already exists');
+      }
+    } catch (error) {
+      console.log('⚠️  Error creating admin user:', error.message);
+    }
   })
   .catch(err => {
     console.log('⚠️  MongoDB connection error:', err.message);
