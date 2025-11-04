@@ -164,28 +164,69 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
       
-      // Build login URL
-      const loginUrl = API_BASE_URL 
-        ? `${API_BASE_URL}/api/auth/login`
-        : isProduction 
-          ? '/api/auth/login' // Production: relative path (will fail if server is separate project)
-          : 'http://localhost:5001/api/auth/login'; // Dev: direct connection
+      // Build login URLs to try
+      const loginUrls: string[] = [];
       
-      console.log('Attempting login to:', loginUrl);
+      if (API_BASE_URL) {
+        // Primary: Use configured API URL
+        loginUrls.push(`${API_BASE_URL}/api/auth/login`);
+      } else if (isProduction) {
+        // Production: Try multiple options
+        const currentOrigin = window.location.origin;
+        
+        // Option 1: Relative path (same domain)
+        loginUrls.push('/api/auth/login');
+        
+        // Option 2: Try common server URL patterns
+        if (currentOrigin.includes('vercel.app')) {
+          const projectName = currentOrigin.replace('https://', '').split('.')[0];
+          const possibleUrls = [
+            `https://${projectName}-api.vercel.app/api/auth/login`,
+            `https://api-${projectName}.vercel.app/api/auth/login`,
+            `https://${projectName.replace('-client', '').replace('-frontend', '').replace('-h3a4', '')}-api.vercel.app/api/auth/login`,
+            `https://${projectName.replace('-client', '').replace('-frontend', '').replace('-h3a4', '')}-server.vercel.app/api/auth/login`,
+          ];
+          loginUrls.push(...possibleUrls);
+        }
+      } else {
+        // Development: Direct connection
+        loginUrls.push('http://localhost:5001/api/auth/login');
+      }
       
-      // Try login request
-      let response;
-      try {
-        response = await fetch(loginUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ email, password }),
-          signal: controller.signal,
-          mode: 'cors',
-        });
-      } catch (fetchError: any) {
+      console.log('🔍 Attempting login with URLs:', loginUrls);
+      
+      // Try login request with multiple URLs
+      let response: Response | null = null;
+      let lastError: any = null;
+      
+      for (const loginUrl of loginUrls) {
+        try {
+          console.log(`📡 Trying: ${loginUrl}`);
+          response = await fetch(loginUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email, password }),
+            signal: controller.signal,
+            mode: 'cors',
+          });
+          
+          // If successful, break out of loop
+          if (response.ok || response.status !== 404) {
+            console.log(`✅ Success with: ${loginUrl}`);
+            break;
+          }
+        } catch (fetchError: any) {
+          console.warn(`❌ Failed: ${loginUrl}`, fetchError.message);
+          lastError = fetchError;
+          // Continue to next URL
+          continue;
+        }
+      }
+      
+      // If all URLs failed
+      if (!response || !response.ok) {
         clearTimeout(timeoutId);
         
         // If production and no API_BASE_URL, show helpful error
@@ -212,19 +253,24 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
           const directController = new AbortController();
           const directTimeout = setTimeout(() => directController.abort(), 10000);
           
-          response = await fetch('http://localhost:5001/api/auth/login', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ email, password }),
-            signal: directController.signal,
-            mode: 'cors',
-          });
-          
-          clearTimeout(directTimeout);
+          try {
+            response = await fetch('http://localhost:5001/api/auth/login', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ email, password }),
+              signal: directController.signal,
+              mode: 'cors',
+            });
+            
+            clearTimeout(directTimeout);
+          } catch (devError) {
+            clearTimeout(directTimeout);
+            throw lastError || devError;
+          }
         } else {
-          throw fetchError;
+          throw lastError || new Error('All login attempts failed');
         }
       }
       
