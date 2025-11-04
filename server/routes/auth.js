@@ -29,7 +29,25 @@ router.post('/login', async (req, res) => {
     const { email, password } = req.body;
 
     // Find user by email
-    const user = await User.findOne({ email });
+    let user = await User.findOne({ email });
+    
+    // Auto-create admin user if login attempt with admin credentials and user doesn't exist
+    if (!user && email === 'admin@metacodsar.com' && password === 'password') {
+      // Create admin user on the fly
+      const hashedPassword = await bcrypt.hash('password', 10);
+      user = new User({
+        name: 'Admin User',
+        email: 'admin@metacodsar.com',
+        password: hashedPassword,
+        phone: '+1234567890',
+        designation: 'System Administrator',
+        role: 'admin',
+        isActive: true
+      });
+      await user.save();
+      console.log('✅ Admin user created on login attempt');
+    }
+    
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
