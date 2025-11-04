@@ -1,8 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode, FC } from 'react';
-
-// Use proxy in development, full URL in production
-const API_BASE_URL = import.meta.env.DEV ? '' : 'http://localhost:5001';
+import { API_BASE_URL } from '../config/api';
 
 interface User {
   id: string;
@@ -44,10 +42,10 @@ const checkServerHealth = async (retries = 3): Promise<boolean> => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout per attempt
       
-      // Try both proxy and direct connection
+      // Try API URL first, then fallback to localhost for development
       const urls = [
         `${API_BASE_URL}/api/health`,
-        'http://localhost:5001/api/health' // Fallback direct connection
+        ...(import.meta.env.DEV ? ['http://localhost:5001/api/health'] : [])
       ];
       
       for (const url of urls) {
@@ -145,23 +143,27 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
           mode: 'cors',
         });
       } catch (proxyError) {
-        // If proxy fails, try direct connection
-        console.log('Proxy failed, trying direct connection...');
-        clearTimeout(timeoutId);
-        const directController = new AbortController();
-        const directTimeout = setTimeout(() => directController.abort(), 10000);
-        
-        response = await fetch('http://localhost:5001/api/auth/login', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ email, password }),
-          signal: directController.signal,
-          mode: 'cors',
-        });
-        
-        clearTimeout(directTimeout);
+        // If API_BASE_URL fails and we're in dev, try direct connection
+        if (import.meta.env.DEV) {
+          console.log('Proxy failed, trying direct connection...');
+          clearTimeout(timeoutId);
+          const directController = new AbortController();
+          const directTimeout = setTimeout(() => directController.abort(), 10000);
+          
+          response = await fetch('http://localhost:5001/api/auth/login', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email, password }),
+            signal: directController.signal,
+            mode: 'cors',
+          });
+          
+          clearTimeout(directTimeout);
+        } else {
+          throw proxyError;
+        }
       }
       
       clearTimeout(timeoutId);

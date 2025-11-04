@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Code, Smartphone, Cloud, Users, Shield, Globe, Star, Award, TrendingUp, Zap, Target, Lightbulb } from 'lucide-react';
 import MetaCodSarLogo from '../components/MetaCodSarLogo';
+import { API_BASE_URL } from '../config/api';
 
 const Home = () => {
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
@@ -103,7 +104,6 @@ const Home = () => {
     // Fetch stats from backend
     const fetchStats = async () => {
       try {
-        const API_BASE_URL = import.meta.env.DEV ? '' : 'http://localhost:5001';
         const response = await fetch(`${API_BASE_URL}/api/stats`);
         if (response.ok) {
           const data = await response.json();

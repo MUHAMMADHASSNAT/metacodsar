@@ -21,8 +21,7 @@ import {
   Lock
 } from 'lucide-react';
 
-// Use proxy in development, full URL in production
-const API_BASE_URL = import.meta.env.DEV ? '' : 'http://localhost:5001';
+import { API_BASE_URL } from '../config/api';
 
 interface Project {
   id: number;

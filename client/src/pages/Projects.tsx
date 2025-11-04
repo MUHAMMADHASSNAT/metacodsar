@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ExternalLink, Github, Calendar, User, Search, Eye, Code, Smartphone, Cloud } from 'lucide-react';
 
-// Use proxy in development, full URL in production
-const API_BASE_URL = import.meta.env.DEV ? '' : 'http://localhost:5001';
+import { API_BASE_URL, getImageUrl } from '../config/api';
 
 interface Project {
   _id?: string;
@@ -50,7 +49,7 @@ const Projects = () => {
           title: project.title,
           description: project.description,
           image: project.imageUrl 
-            ? (project.imageUrl.startsWith('http') ? project.imageUrl : `http://localhost:5001${project.imageUrl.startsWith('/') ? '' : '/'}${project.imageUrl}`)
+            ? getImageUrl(project.imageUrl)
             : project.image || 'https://via.placeholder.com/400x225/4F46E5/FFFFFF?text=' + encodeURIComponent(project.title || 'Project'),
           technologies: Array.isArray(project.technologies) ? project.technologies : [],
           githubUrl: project.githubUrl || '',

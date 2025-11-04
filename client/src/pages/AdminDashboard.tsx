@@ -19,8 +19,7 @@ import {
   Lock
 } from 'lucide-react';
 
-// Use proxy in development, full URL in production
-const API_BASE_URL = import.meta.env.DEV ? '' : 'http://localhost:5001';
+import { API_BASE_URL, getImageUrl } from '../config/api';
 
 interface TeamMember {
   _id: string;
@@ -321,9 +320,7 @@ const AdminDashboard = () => {
       profilePicture: null
     });
     if (member.profilePicture) {
-      const fullUrl = member.profilePicture.startsWith('http') 
-        ? member.profilePicture 
-        : `http://localhost:5001${member.profilePicture.startsWith('/') ? '' : '/'}${member.profilePicture}`;
+      const fullUrl = getImageUrl(member.profilePicture);
       setProfilePicturePreview(fullUrl);
     } else {
       setProfilePicturePreview(null);
@@ -815,7 +812,7 @@ const AdminDashboard = () => {
                       {member.profilePicture ? (
                         <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-emerald-500 shadow-lg">
                           <img
-                            src={member.profilePicture.startsWith('http') ? member.profilePicture : `http://localhost:5001${member.profilePicture.startsWith('/') ? '' : '/'}${member.profilePicture}`}
+                            src={getImageUrl(member.profilePicture)}
                             alt={member.name}
                             className="w-full h-full object-cover"
                             onError={(e) => {
@@ -919,7 +916,7 @@ const AdminDashboard = () => {
                   {project.imageUrl && (
                     <div className="h-48 bg-gray-200 overflow-hidden">
                       <img 
-                        src={project.imageUrl.startsWith('http') ? project.imageUrl : `http://localhost:5001${project.imageUrl.startsWith('/') ? '' : '/'}${project.imageUrl}`}
+                        src={getImageUrl(project.imageUrl)}
                         alt={project.title}
                         className="w-full h-full object-cover"
                         onError={(e) => {

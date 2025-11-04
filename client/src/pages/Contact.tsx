@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Mail, Phone, MapPin, Send, CheckCircle } from 'lucide-react';
+import { API_BASE_URL } from '../config/api';
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -25,9 +26,6 @@ const Contact = () => {
     setIsLoading(true);
     
     try {
-      // Use proxy in development, full URL in production
-      const API_BASE_URL = import.meta.env.DEV ? '' : 'http://localhost:5001';
-      
       const response = await fetch(`${API_BASE_URL}/api/contact`, {
         method: 'POST',
         headers: {

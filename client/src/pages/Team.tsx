@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { User, Github, Linkedin, Calendar, Award, Code, Smartphone, Cloud, Database, X } from 'lucide-react';
 
-// Use proxy in development, full URL in production
-const API_BASE_URL = import.meta.env.DEV ? '' : 'http://localhost:5001';
+import { API_BASE_URL, getImageUrl } from '../config/api';
 
 interface TeamMember {
   _id?: string;
@@ -46,7 +45,7 @@ const Team = () => {
           email: member.email,
           phone: member.phone || 'N/A',
           profilePicture: member.profilePicture 
-            ? (member.profilePicture.startsWith('http') ? member.profilePicture : `http://localhost:5001${member.profilePicture.startsWith('/') ? '' : '/'}${member.profilePicture}`)
+            ? getImageUrl(member.profilePicture)
             : `https://via.placeholder.com/200x200/4F46E5/FFFFFF?text=${member.name.charAt(0).toUpperCase()}`,
           bio: member.bio || `${member.designation || 'Team Member'} at MetaCodsar. Passionate about technology and innovation.`,
           skills: member.skills || [],
