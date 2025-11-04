@@ -42,13 +42,31 @@ const checkServerHealth = async (retries = 3): Promise<boolean> => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout per attempt
       
-      // Try API URL first, then fallback to localhost for development
-      const urls = [
-        `${API_BASE_URL}/api/health`,
-        ...(import.meta.env.DEV ? ['http://localhost:5001/api/health'] : [])
-      ];
+      // Build URLs to try
+      const urls: string[] = [];
       
-      for (const url of urls) {
+      // If API_BASE_URL is set, use it
+      if (API_BASE_URL) {
+        urls.push(`${API_BASE_URL}/api/health`);
+      } else if (import.meta.env.PROD) {
+        // Production: try relative path (same domain)
+        urls.push('/api/health');
+      }
+      
+      // Development fallback
+      if (import.meta.env.DEV) {
+        urls.push('http://localhost:5001/api/health');
+      }
+      
+      // Remove empty URLs
+      const validUrls = urls.filter(url => url && url.trim() !== '');
+      
+      if (validUrls.length === 0) {
+        console.error('No valid API URLs to check');
+        return false;
+      }
+      
+      for (const url of validUrls) {
         try {
           const response = await fetch(url, {
             method: 'GET',
@@ -106,19 +124,41 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
       const isServerRunning = await checkServerHealth();
       
       if (!isServerRunning) {
-        const errorMsg = '❌ Server Connection Failed!\n\n' +
-          'Server port 5001 par nahi chal raha.\n\n' +
-          '🔧 Fix karne ke liye:\n\n' +
-          '1️⃣  Root folder mein "start-app.bat" ya "start-app.ps1" run karein\n' +
-          '   Ya manually:\n' +
-          '2️⃣  Terminal khol kar:\n' +
-          '   cd server\n' +
-          '   npm start\n\n' +
-          '3️⃣  Agar port 5001 busy hai:\n' +
-          '   cd server\n' +
-          '   node free-port.js\n' +
-          '   npm start\n\n' +
-          '✅ Server start hone ke baad phir se login karein!';
+        const isProduction = import.meta.env.PROD;
+        let errorMsg = '❌ Server Connection Failed!\n\n';
+        
+        if (isProduction) {
+          errorMsg += 'Production server se connect nahi ho raha.\n\n' +
+            '🔧 Fix karne ke liye:\n\n' +
+            '1️⃣  Vercel Dashboard mein check karein:\n' +
+            '   - Environment Variables → VITE_API_URL set hai?\n' +
+            '   - Server URL sahi hai?\n\n' +
+            '2️⃣  Agar VITE_API_URL missing hai:\n' +
+            '   - Vercel Dashboard → Settings → Environment Variables\n' +
+            '   - Add: VITE_API_URL = your-server-url\n' +
+            '   - Redeploy karein\n\n' +
+            '3️⃣  Server logs check karein Vercel dashboard mein\n\n' +
+            '✅ Config fix ke baad phir se login karein!';
+        } else {
+          errorMsg += 'Server port 5001 par nahi chal raha.\n\n' +
+            '🔧 Fix karne ke liye:\n\n' +
+            '1️⃣  Root folder mein "start-app.bat" ya "start-app.ps1" run karein\n' +
+            '   Ya manually:\n' +
+            '2️⃣  Terminal khol kar:\n' +
+            '   cd server\n' +
+            '   npm start\n\n' +
+            '3️⃣  Agar port 5001 busy hai:\n' +
+            '   cd server\n' +
+            '   node free-port.js\n' +
+            '   npm start\n\n' +
+            '✅ Server start hone ke baad phir se login karein!';
+        }
+        
+        console.error('Server Connection Failed:', {
+          API_BASE_URL,
+          isProduction,
+          env: import.meta.env
+        });
         
         alert(errorMsg);
         setIsLoading(false);
