@@ -1,0 +1,16 @@
+node_modules
+.git
+.env.local
+.env.*.local
+dist
+build
+*.log
+.DS_Store
+start-app.bat
+start-app.ps1
+check-server.js
+test-server.js
+PORT-FIX-GUIDE.md
+START-HERE.md
+scripts/
+
