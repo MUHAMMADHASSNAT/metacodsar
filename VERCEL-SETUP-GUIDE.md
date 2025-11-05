@@ -55,14 +55,72 @@
 
 ## 🔍 Troubleshooting
 
-### Issue: "Server Connection Failed"
+### Issue: "Client aur Server Connect Nahi Ho Rahay" (Client and Server Not Connecting)
 
-**Solution:**
-1. Check browser console (F12) for detailed error messages
-2. Verify `VITE_API_URL` is set in Client Project
-3. Verify server URL is correct (no trailing slash)
-4. Check server is deployed and running
-5. Redeploy both projects after setting environment variables
+**Ye sabse common problem hai! Isko step-by-step fix karein:**
+
+#### Step 1: Environment Variable Check Karo
+
+1. **Client Project mein `VITE_API_URL` check karo:**
+   - Vercel Dashboard → Client Project → Settings → Environment Variables
+   - Variable name exactly `VITE_API_URL` hona chahiye (typo nahi)
+   - Value mein server URL hona chahiye: `https://your-server.vercel.app`
+   - **IMPORTANT:** Trailing slash (`/`) nahi hona chahiye
+   - Environment "Production" ya "All Environments" select karo
+
+2. **Server Project mein `FRONTEND_URL` check karo:**
+   - Vercel Dashboard → Server Project → Settings → Environment Variables
+   - Variable name: `FRONTEND_URL`
+   - Value: Client URL (e.g., `https://your-client.vercel.app`)
+   - Trailing slash nahi hona chahiye
+
+#### Step 2: Redeploy Zaroori Hai!
+
+**⚠️ IMPORTANT:** Environment variable add karne ke baad **HAMESHA redeploy karo!**
+
+1. **Client Project Redeploy:**
+   - Deployments tab → Latest deployment → "Redeploy" button
+   - Ya naya commit push karo
+
+2. **Server Project Redeploy:**
+   - Same process - Redeploy karo
+
+#### Step 3: Browser Console Check Karo
+
+1. Browser mein F12 press karo (Developer Tools)
+2. Console tab mein dekho:
+   - `✅ Using VITE_API_URL: https://...` dikhna chahiye
+   - Agar `⚠️ VITE_API_URL environment variable is missing!` dikhe, to variable set nahi hua
+3. Network tab mein API requests check karo:
+   - Request URL sahi hai ya nahi?
+   - CORS error aa raha hai?
+
+#### Step 4: Server Health Check
+
+Browser mein ye URL open karo:
+```
+https://your-server-url.vercel.app/api/health
+```
+
+Agar response aaye:
+```json
+{"status":"OK","message":"MetaCodsar API is running",...}
+```
+To server theek kaam kar raha hai!
+
+#### Step 5: Common Mistakes
+
+- ❌ **Wrong:** `VITE_API_URL = https://server.vercel.app/` (trailing slash)
+- ✅ **Correct:** `VITE_API_URL = https://server.vercel.app`
+
+- ❌ **Wrong:** Variable name typo (`VITE_API_UR` instead of `VITE_API_URL`)
+- ✅ **Correct:** `VITE_API_URL` exactly
+
+- ❌ **Wrong:** Environment variable set kiya but redeploy nahi kiya
+- ✅ **Correct:** Variable set karne ke baad redeploy karo
+
+- ❌ **Wrong:** Development environment mein variable set kiya (Production mein nahi)
+- ✅ **Correct:** "All Environments" ya "Production" select karo
 
 ### Issue: "Invalid Credentials"
 
@@ -88,19 +146,24 @@
 - [ ] Server URL is accessible (check in browser)
 - [ ] Client URL is accessible (check in browser)
 
-## 🎯 Example Configuration
+## 🎯 Example Configuration (Actual URLs)
 
-**Server Project:**
+**Server Project (Backend - https://metacodsar-2vf1.vercel.app):**
 ```
 MONGODB_URI = mongodb+srv://metacodsar:password@cluster.mongodb.net/metacodsar
 JWT_SECRET = my-secret-key-12345
-FRONTEND_URL = https://metacodsar.vercel.app
+FRONTEND_URL = https://metacodsar-h3a4.vercel.app
+NODE_ENV = production
 ```
 
-**Client Project:**
+**Client Project (Frontend - https://metacodsar-h3a4.vercel.app):**
 ```
-VITE_API_URL = https://metacodsar-h3a4.vercel.app
+VITE_API_URL = https://metacodsar-2vf1.vercel.app
 ```
+
+**⚠️ Important:** 
+- Server URL: `https://metacodsar-2vf1.vercel.app` (no trailing slash)
+- Client URL: `https://metacodsar-h3a4.vercel.app` (no trailing slash)
 
 ## 💡 Tips
 
@@ -120,4 +183,67 @@ VITE_API_URL = https://metacodsar-h3a4.vercel.app
    - Use browser console (F12) to see detailed logs
    - Check Network tab to see API requests
    - Verify server health: `https://your-server-url/api/health`
+
+## 🔧 Quick Diagnostic Steps
+
+Agar aapka client aur server connect nahi ho raha, ye steps follow karo:
+
+### Step 1: Browser Console Check (F12)
+1. Browser mein F12 press karo
+2. Console tab mein dekho kya messages aa rahe hain:
+   - ✅ `✅ Using VITE_API_URL: https://...` → Variable sahi set hai
+   - ⚠️ `⚠️ VITE_API_URL environment variable is missing!` → Variable set nahi hai ya redeploy nahi hua
+
+### Step 2: Network Tab Check
+1. Network tab open karo
+2. Koi API request try karo (e.g., login)
+3. Failed request par click karo
+4. Dekho:
+   - **Request URL:** Kya sahi server URL hai?
+   - **Status:** CORS error (403/404) ya network error?
+   - **Response:** Kya error message hai?
+
+### Step 3: Server Health Check
+Browser mein directly server URL open karo:
+```
+https://your-server-url.vercel.app/api/health
+```
+
+Expected response:
+```json
+{
+  "status": "OK",
+  "message": "MetaCodsar API is running",
+  "timestamp": "...",
+  "environment": "production"
+}
+```
+
+Agar ye response nahi aata, to server deploy nahi hua ya issue hai.
+
+### Step 4: Vercel Environment Variables Verify
+1. **Client Project:**
+   - Settings → Environment Variables
+   - Check: `VITE_API_URL` exists
+   - Value: Server URL (no trailing slash)
+   - Environment: Production ya All Environments
+
+2. **Server Project:**
+   - Settings → Environment Variables  
+   - Check: `FRONTEND_URL` exists
+   - Value: Client URL (no trailing slash)
+   - Environment: Production ya All Environments
+
+### Step 5: Redeploy Dono Projects
+**⚠️ IMPORTANT:** Environment variables change karne ke baad redeploy zaroori hai!
+
+1. Client Project → Deployments → Latest → Redeploy
+2. Server Project → Deployments → Latest → Redeploy
+
+### Step 6: Vercel Logs Check Karo
+1. Server Project → Deployments → Latest deployment → Logs
+2. Dekho kya errors aa rahe hain:
+   - MongoDB connection error?
+   - CORS warnings?
+   - Environment variable missing warnings?
 

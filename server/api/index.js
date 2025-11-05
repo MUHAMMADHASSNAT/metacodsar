@@ -9,31 +9,54 @@ const User = require('../models/User');
 const app = express();
 
 // CORS configuration for Vercel
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://metacodsar-h3a4.vercel.app';
 const allowedOrigins = [
-  process.env.FRONTEND_URL || 'https://metacodsar.vercel.app',
+  FRONTEND_URL,
+  'https://metacodsar-h3a4.vercel.app', // Main frontend URL
+  'https://metacodsar-h3a4-git-main.vercel.app', // Vercel preview URLs
+  'https://metacodsar-h3a4-git-*.vercel.app',
   'https://metacodsar-git-main.vercel.app',
   'https://metacodsar-git-*.vercel.app',
   'http://localhost:5173',
   'http://localhost:5174',
   'http://127.0.0.1:5173',
   'http://127.0.0.1:5174'
-];
+].filter(Boolean); // Remove undefined values
+
+if (FRONTEND_URL) {
+  console.log('✅ FRONTEND_URL configured:', FRONTEND_URL);
+} else {
+  console.warn('⚠️ FRONTEND_URL not set in environment variables');
+  console.warn('   Set FRONTEND_URL in Vercel Dashboard → Server Project → Environment Variables');
+}
 
 app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
-    if (allowedOrigins.some(allowed => {
+    // Check if origin matches any allowed origin
+    const isAllowed = allowedOrigins.some(allowed => {
       if (allowed.includes('*')) {
-        const pattern = allowed.replace('*', '.*');
+        const pattern = allowed.replace(/\*/g, '.*');
         return new RegExp(pattern).test(origin);
       }
       return allowed === origin;
-    })) {
+    });
+    
+    if (isAllowed) {
       callback(null, true);
     } else {
-      callback(null, true); // Allow all for now, restrict in production
+      // In production, log the blocked origin for debugging
+      if (process.env.NODE_ENV === 'production') {
+        console.log('⚠️ CORS: Blocked origin:', origin);
+        console.log('   Allowed origins:', allowedOrigins);
+        if (FRONTEND_URL) {
+          console.log('   Make sure client URL matches FRONTEND_URL:', FRONTEND_URL);
+        }
+      }
+      // For now, allow all origins (restrict in production if needed)
+      callback(null, true);
     }
   },
   credentials: true,
