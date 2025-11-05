@@ -332,29 +332,91 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
       console.error('Login error:', error);
       
       let errorMsg = '❌ Login Failed!\n\n';
+      const isProduction = import.meta.env.PROD;
       
       if (error.name === 'AbortError' || error.message?.includes('timeout')) {
-        errorMsg += '⏱️ Server response timeout!\n\n';
-        errorMsg += 'Server slow hai ya nahi chal raha.\n\n';
+        errorMsg += '⏱️ Server Response Timeout!\n\n';
+        
+        if (isProduction) {
+          errorMsg += 'Server slow hai ya cold start ho raha hai.\n\n';
+          errorMsg += '🔧 Production Solution:\n\n';
+          errorMsg += '1️⃣  Vercel Dashboard → Server Project → Logs check karein\n';
+          errorMsg += '2️⃣  MongoDB connection verify karein:\n';
+          errorMsg += '   - MONGODB_URI set hai?\n';
+          errorMsg += '   - Network Access allow hai?\n\n';
+          errorMsg += '3️⃣  Wait 2-3 seconds aur phir se try karein\n';
+          errorMsg += '   (Cold start ke baad automatically retry ho jayega)\n\n';
+          errorMsg += '4️⃣  Server health check:\n';
+          errorMsg += `   ${API_BASE_URL || 'https://metacodsar-2vf1.vercel.app'}/api/health\n\n`;
+          errorMsg += '💡 Tip: First request slow hota hai (cold start).\n';
+          errorMsg += '    Subsequent requests fast honge!';
+        } else {
+          errorMsg += 'Server slow hai ya nahi chal raha.\n\n';
+          errorMsg += '🔧 Development Solution:\n\n';
+          errorMsg += '1️⃣  Server check karein:\n';
+          errorMsg += '   Browser mein open karein: http://localhost:5001/api/health\n\n';
+          errorMsg += '2️⃣  Server start karein:\n';
+          errorMsg += '   cd server\n';
+          errorMsg += '   npm start\n\n';
+          errorMsg += '3️⃣  Port issue ho to:\n';
+          errorMsg += '   cd server\n';
+          errorMsg += '   node free-port.js\n\n';
+          errorMsg += '✅ Server start hone ke baad phir se try karein!';
+        }
       } else if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
         errorMsg += '🌐 Network Connection Error!\n\n';
-        errorMsg += 'Server se connect nahi ho pa raha.\n\n';
+        
+        if (isProduction) {
+          errorMsg += 'Server se connect nahi ho pa raha.\n\n';
+          errorMsg += '🔧 Production Solution:\n\n';
+          errorMsg += '1️⃣  Vercel Dashboard → Client Project → Environment Variables\n';
+          errorMsg += '   Check: VITE_API_URL set hai?\n';
+          errorMsg += `   Value: ${API_BASE_URL || 'NOT SET'}\n\n`;
+          errorMsg += '2️⃣  Server URL verify karein:\n';
+          errorMsg += '   https://metacodsar-2vf1.vercel.app/api/health\n\n';
+          errorMsg += '3️⃣  CORS check karein:\n';
+          errorMsg += '   Server Project → FRONTEND_URL set hai?\n';
+          errorMsg += '   Value: https://metacodsar-h3a4.vercel.app\n\n';
+          errorMsg += '4️⃣  Redeploy dono projects after fixing variables';
+        } else {
+          errorMsg += 'Server se connect nahi ho pa raha.\n\n';
+          errorMsg += '🔧 Development Solution:\n\n';
+          errorMsg += '1️⃣  Server check karein:\n';
+          errorMsg += '   Browser mein open karein: http://localhost:5001/api/health\n\n';
+          errorMsg += '2️⃣  Server start karein:\n';
+          errorMsg += '   cd server && npm start\n\n';
+          errorMsg += '✅ Server start hone ke baad phir se try karein!';
+        }
       } else {
         errorMsg += '❌ Connection Error!\n\n';
+        
+        if (isProduction) {
+          errorMsg += '🔧 Production Troubleshooting:\n\n';
+          errorMsg += '1️⃣  Server health check:\n';
+          errorMsg += `   ${API_BASE_URL || 'https://metacodsar-2vf1.vercel.app'}/api/health\n\n`;
+          errorMsg += '2️⃣  Vercel Logs check karein:\n';
+          errorMsg += '   Server Project → Deployments → Logs\n\n';
+          errorMsg += '3️⃣  Environment Variables verify:\n';
+          errorMsg += '   - MONGODB_URI\n';
+          errorMsg += '   - FRONTEND_URL\n';
+          errorMsg += '   - VITE_API_URL (Client Project)\n\n';
+          errorMsg += '4️⃣  Retry karein (automatic retry active hai)';
+        } else {
+          errorMsg += '🔧 Development Solution:\n\n';
+          errorMsg += '1️⃣  Server check karein:\n';
+          errorMsg += '   Browser mein open karein: http://localhost:5001/api/health\n\n';
+          errorMsg += '2️⃣  Server start karein:\n';
+          errorMsg += '   cd server\n';
+          errorMsg += '   npm start\n\n';
+          errorMsg += '3️⃣  Port issue ho to:\n';
+          errorMsg += '   cd server\n';
+          errorMsg += '   node free-port.js\n\n';
+          errorMsg += '✅ Server start hone ke baad phir se try karein!';
+        }
       }
       
-      errorMsg += '🔧 Solution:\n\n';
-      errorMsg += '1️⃣  Server check karein:\n';
-      errorMsg += '   Browser mein open karein: http://localhost:5001/api/health\n\n';
-      errorMsg += '2️⃣  Server start karein:\n';
-      errorMsg += '   cd server\n';
-      errorMsg += '   npm start\n\n';
-      errorMsg += '3️⃣  Port issue ho to:\n';
-      errorMsg += '   cd server\n';
-      errorMsg += '   node free-port.js\n\n';
-      errorMsg += '✅ Server start hone ke baad phir se try karein!';
-      
       alert(errorMsg);
+      setIsLoading(false);
       return false;
     } finally {
       setIsLoading(false);
