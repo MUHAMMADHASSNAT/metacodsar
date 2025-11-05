@@ -247,3 +247,210 @@ Agar ye response nahi aata, to server deploy nahi hua ya issue hai.
    - CORS warnings?
    - Environment variable missing warnings?
 
+### Step 7: Admin Login Test Karo
+1. Browser console (F12) open karo
+2. Network tab mein login request dekho
+3. Request URL check karo:
+   - Should be: `https://metacodsar-2vf1.vercel.app/api/auth/login`
+   - Not: `https://metacodsar-h3a4.vercel.app/api/auth/login`
+4. Response check karo:
+   - Status 200 → Success
+   - Status 401 → Invalid credentials (check email/password)
+   - Status 503 → MongoDB connection failed
+   - Status 500 → Server error (check logs)
+
+## 🔧 Server Kaam Nahi Kar Raha - Detailed Fix
+
+### Problem 1: MongoDB Connection Failed
+
+**Symptoms:**
+- Login nahi ho raha
+- Error: "Database connection failed"
+- Status: 503
+
+**Solution:**
+1. Vercel Dashboard → Server Project → Settings → Environment Variables
+2. Check: `MONGODB_URI` set hai ya nahi
+3. Format: `mongodb+srv://username:password@cluster.mongodb.net/database`
+4. Trailing slash nahi hona chahiye
+5. Redeploy server project
+
+### Problem 2: Admin Login Nahi Ho Raha
+
+**Symptoms:**
+- "Invalid credentials" error
+- Login button click karne par kuch nahi hota
+
+**Solution:**
+1. **Credentials check:**
+   - Email: `admin@metacodsar.com`
+   - Password: `password`
+   - Case sensitive nahi hai, but exact match hona chahiye
+
+2. **Browser console check (F12):**
+   - Request URL sahi hai?
+   - CORS error aa raha hai?
+   - Network tab mein response kya aa raha hai?
+
+3. **Server logs check:**
+   - Vercel → Server Project → Deployments → Logs
+   - "Admin user created" message dikh raha hai?
+   - MongoDB connection successful hai?
+
+4. **Direct API test:**
+   Browser console mein ye run karo:
+   ```javascript
+   fetch('https://metacodsar-2vf1.vercel.app/api/auth/login', {
+     method: 'POST',
+     headers: { 'Content-Type': 'application/json' },
+     body: JSON.stringify({
+       email: 'admin@metacodsar.com',
+       password: 'password'
+     })
+   }).then(r => r.json()).then(console.log)
+   ```
+
+### Problem 3: Environment Variables Set Hain But Kaam Nahi Kar Raha
+
+**Check karo:**
+1. Variable name exactly match karta hai? (`VITE_API_URL`, `FRONTEND_URL`)
+2. Value mein trailing slash nahi hai?
+3. Environment "Production" ya "All Environments" select kiya?
+4. **Redeploy kiya?** (Ye sabse important hai!)
+   - Variable set karne ke baad redeploy zaroori hai
+   - Vercel automatically redeploy nahi karta
+
+### Problem 4: CORS Errors
+
+**Symptoms:**
+- Browser console mein CORS error
+- Network tab mein preflight request failed
+
+**Solution:**
+1. Server Project → Environment Variables
+2. `FRONTEND_URL = https://metacodsar-h3a4.vercel.app` (exactly, no trailing slash)
+3. Redeploy server project
+4. Client Project → Environment Variables
+5. `VITE_API_URL = https://metacodsar-2vf1.vercel.app` (exactly, no trailing slash)
+6. Redeploy client project
+
+## ✅ Quick Test Checklist
+
+1. **Server Health Check:**
+   ```
+   https://metacodsar-2vf1.vercel.app/api/health
+   ```
+   Response aana chahiye with `"status": "OK"`
+
+2. **Direct Login Test (Browser Console):**
+   ```javascript
+   fetch('https://metacodsar-2vf1.vercel.app/api/auth/login', {
+     method: 'POST',
+     headers: { 'Content-Type': 'application/json' },
+     body: JSON.stringify({ email: 'admin@metacodsar.com', password: 'password' })
+   }).then(r => r.json()).then(console.log)
+   ```
+
+3. **Client Console Check:**
+   - F12 → Console tab
+   - `✅ Using VITE_API_URL: https://metacodsar-2vf1.vercel.app` dikhna chahiye
+
+4. **Network Tab Check:**
+   - Login request URL: `https://metacodsar-2vf1.vercel.app/api/auth/login`
+   - Status: 200 (success) ya 401 (credentials issue)
+
+## ⏱️ Server Timeout Issues - Fix Guide
+
+### Problem: "Server Response Timeout" ya "Request Timeout"
+
+**Symptoms:**
+- Browser mein timeout error
+- "Server took too long to respond"
+- Network tab mein request pending rahta hai
+
+**Causes:**
+1. **Cold Start** - Serverless function pehli baar start ho raha hai (slow)
+2. **MongoDB Connection Slow** - Database connection timeout
+3. **Vercel Free Tier Limit** - 10 seconds max timeout
+4. **Network Issues** - MongoDB Atlas slow connection
+
+**Solutions:**
+
+#### Solution 1: MongoDB Connection Optimize
+1. **MongoDB Atlas Connection String Check:**
+   - Atlas Dashboard → Database → Connect → Drivers
+   - Connection string format:
+   ```
+   mongodb+srv://username:password@cluster.mongodb.net/database?retryWrites=true&w=majority
+   ```
+   - `retryWrites=true` add karo
+
+2. **MongoDB Atlas Network Access:**
+   - Atlas Dashboard → Network Access
+   - `0.0.0.0/0` allow karo (all IPs)
+   - Ya Vercel IPs allow karo
+
+#### Solution 2: Vercel Configuration
+1. **Timeout Settings:**
+   - Vercel free tier: 10 seconds max
+   - Pro tier: 60 seconds max
+   - Current config: 10 seconds set hai
+
+2. **Environment Variables:**
+   - `MONGODB_URI` correctly set hai?
+   - `FRONTEND_URL` correctly set hai?
+   - `JWT_SECRET` set hai?
+
+#### Solution 3: Retry Logic
+Agar timeout aaye, to:
+1. Wait 2-3 seconds
+2. Retry karo
+3. Cold start hone ke baad fast ho jayega
+
+#### Solution 4: MongoDB Atlas Optimization
+1. **Region Selection:**
+   - MongoDB Atlas region same hona chahiye jahan Vercel deploy hai
+   - Vercel: US/EU regions
+   - Atlas: Same region select karo
+
+2. **Connection Pooling:**
+   - Serverless ke liye optimized hai
+   - Single connection reuse karta hai
+
+#### Solution 5: Check Vercel Logs
+1. Vercel Dashboard → Server Project → Deployments → Logs
+2. Dekho:
+   - "MongoDB connected successfully" dikh raha hai?
+   - Connection time kya hai?
+   - Query time kya hai?
+
+**Expected Times:**
+- Cold start: 2-5 seconds (first request)
+- Warm start: < 1 second (subsequent requests)
+- MongoDB connection: 1-3 seconds
+- Login query: < 1 second
+
+**Agar still slow hai:**
+1. MongoDB Atlas M0 (free tier) slow ho sakta hai
+2. Upgrade to M2/M5 for better performance
+3. Ya Vercel Pro tier (60s timeout instead of 10s)
+
+### Quick Timeout Test
+
+Browser console mein:
+```javascript
+console.time('login');
+fetch('https://metacodsar-2vf1.vercel.app/api/auth/login', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ email: 'admin@metacodsar.com', password: 'password' })
+})
+.then(r => r.json())
+.then(data => {
+  console.timeEnd('login');
+  console.log(data);
+});
+```
+
+Expected time: < 3 seconds (after cold start)
+

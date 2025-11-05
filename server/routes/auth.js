@@ -23,33 +23,65 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
-// Login route
+// Login route (optimized for speed)
 router.post('/login', async (req, res) => {
+  const startTime = Date.now();
+  
   try {
     const { email, password } = req.body;
 
-    // Find user by email
-    let user = await User.findOne({ email });
+    // Validate input
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email and password are required' });
+    }
+
+    // Find user by email (with timeout)
+    let user;
+    try {
+      user = await Promise.race([
+        User.findOne({ email }),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Query timeout')), 5000)
+        )
+      ]);
+    } catch (queryError) {
+      console.error('User query timeout:', queryError);
+      return res.status(503).json({ 
+        message: 'Database query timeout. Please try again.',
+        error: 'Query timeout'
+      });
+    }
     
     // Auto-create admin user if login attempt with admin credentials and user doesn't exist
     if (!user && email === 'admin@metacodsar.com' && password === 'password') {
-      // Create admin user on the fly
-      const hashedPassword = await bcrypt.hash('password', 10);
-      user = new User({
-        name: 'Admin User',
-        email: 'admin@metacodsar.com',
-        password: hashedPassword,
-        phone: '+1234567890',
-        designation: 'System Administrator',
-        role: 'admin',
-        isActive: true
-      });
-      await user.save();
-      console.log('✅ Admin user created on login attempt');
+      try {
+        // Create admin user on the fly
+        const hashedPassword = await bcrypt.hash('password', 10);
+        user = new User({
+          name: 'Admin User',
+          email: 'admin@metacodsar.com',
+          password: hashedPassword,
+          phone: '+1234567890',
+          designation: 'System Administrator',
+          role: 'admin',
+          isActive: true
+        });
+        await user.save();
+        console.log('✅ Admin user created on login attempt');
+      } catch (createError) {
+        console.error('Error creating admin user:', createError);
+        // If creation fails, try to find user again
+        user = await User.findOne({ email: 'admin@metacodsar.com' });
+      }
     }
     
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    // Check if user is active
+    if (!user.isActive) {
+      return res.status(401).json({ message: 'Account is deactivated' });
     }
 
     // Check password
@@ -65,6 +97,9 @@ router.post('/login', async (req, res) => {
       { expiresIn: '24h' }
     );
 
+    const duration = Date.now() - startTime;
+    console.log(`✅ Login successful in ${duration}ms`);
+    
     res.json({
       token,
       user: {
@@ -75,8 +110,12 @@ router.post('/login', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ message: 'Server error' });
+    const duration = Date.now() - startTime;
+    console.error(`❌ Login error after ${duration}ms:`, error.message);
+    res.status(500).json({ 
+      message: 'Server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 
@@ -184,6 +223,23 @@ router.put('/profile', authenticateToken, async (req, res) => {
     res.json(user);
   } catch (error) {
     console.error('Profile update error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get profile route
+router.get('/profile', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const user = await User.findById(userId).select('-password');
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json(user);
+  } catch (error) {
+    console.error('Get profile error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
