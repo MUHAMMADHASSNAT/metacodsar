@@ -35,20 +35,22 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: 'Email and password are required' });
     }
 
-    // Find user by email (with timeout)
+    // Find user by email (with aggressive timeout)
     let user;
     try {
       user = await Promise.race([
         User.findOne({ email }),
         new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Query timeout')), 5000)
+          setTimeout(() => reject(new Error('Query timeout')), 3000)
         )
       ]);
     } catch (queryError) {
       console.error('User query timeout:', queryError);
       return res.status(503).json({ 
         message: 'Database query timeout. Please try again.',
-        error: 'Query timeout'
+        error: 'Query timeout',
+        retry: true,
+        retryAfter: 2
       });
     }
     

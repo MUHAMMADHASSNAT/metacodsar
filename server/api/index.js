@@ -64,15 +64,17 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Request timeout middleware (8 seconds for Vercel free tier)
+// Request timeout middleware (7 seconds for Vercel free tier - leave buffer)
 app.use((req, res, next) => {
-  // Set timeout for requests
-  req.setTimeout(8000, () => {
+  // Set timeout for requests (7 seconds to leave buffer for Vercel's 10s limit)
+  req.setTimeout(7000, () => {
     if (!res.headersSent) {
       res.status(504).json({ 
         message: 'Request timeout',
         error: 'Server took too long to respond',
-        hint: 'Please try again'
+        hint: 'Please try again. Server might be starting up.',
+        retry: true,
+        retryAfter: 3
       });
     }
   });
@@ -98,14 +100,34 @@ const upload = multer({
   }
 });
 
-// MongoDB Connection (Optimized for Vercel serverless with timeout handling)
+// MongoDB Connection (Aggressively optimized for Vercel serverless)
 const MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URI;
 
 // Connection promise cache (for serverless reuse)
 let connectionPromise = null;
-let adminCreated = false;
+let adminCreationPromise = null;
 
-// Function to ensure MongoDB connection (optimized for speed)
+// Optimize MongoDB URI for faster connection
+const optimizeMongoURI = (uri) => {
+  if (!uri) return uri;
+  
+  // Add connection options if not present
+  if (!uri.includes('?')) {
+    return `${uri}?retryWrites=true&w=majority&maxPoolSize=1&minPoolSize=0&maxIdleTimeMS=30000`;
+  }
+  
+  // Add options if query params exist
+  if (!uri.includes('retryWrites')) {
+    uri += (uri.includes('?') && !uri.endsWith('?') && !uri.endsWith('&') ? '&' : '') + 'retryWrites=true';
+  }
+  if (!uri.includes('w=majority')) {
+    uri += '&w=majority';
+  }
+  
+  return uri;
+};
+
+// Function to ensure MongoDB connection (ultra-fast)
 const connectDB = async () => {
   if (!MONGODB_URI) {
     console.warn('⚠️  MONGODB_URI not set in environment variables');
@@ -117,71 +139,56 @@ const connectDB = async () => {
     return true;
   }
 
-  // If connection is in progress, wait for it
+  // If connection is in progress, wait for it (but with timeout)
   if (mongoose.connection.readyState === 2) {
-    console.log('⏳ MongoDB connection in progress, waiting...');
     if (connectionPromise) {
-      return connectionPromise;
+      try {
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Connection timeout')), 2000)
+        );
+        return await Promise.race([connectionPromise, timeoutPromise]);
+      } catch (err) {
+        console.log('⚠️  Waiting for connection timed out');
+        connectionPromise = null;
+      }
     }
   }
 
-  // Create connection promise with timeout
+  // Create connection promise with aggressive timeout
   connectionPromise = (async () => {
     try {
-      // Use fast connection settings for Vercel serverless
-      await mongoose.connect(MONGODB_URI, {
+      const optimizedURI = optimizeMongoURI(MONGODB_URI);
+      
+      // Ultra-fast connection settings for Vercel serverless
+      await mongoose.connect(optimizedURI, {
         useNewUrlParser: true,
         useUnifiedTopology: true,
-        serverSelectionTimeoutMS: 3000, // Reduced to 3 seconds
-        socketTimeoutMS: 45000, // 45 seconds socket timeout
-        connectTimeoutMS: 3000, // 3 seconds connection timeout
-        maxPoolSize: 1, // Single connection for serverless
-        minPoolSize: 1,
-        maxIdleTimeMS: 30000, // Close idle connections after 30s
+        serverSelectionTimeoutMS: 2000, // 2 seconds (aggressive)
+        socketTimeoutMS: 45000,
+        connectTimeoutMS: 2000, // 2 seconds
+        maxPoolSize: 1,
+        minPoolSize: 0, // Don't keep connection open
+        maxIdleTimeMS: 10000, // Close idle connections quickly
+        heartbeatFrequencyMS: 10000,
       });
       
       console.log('✅ MongoDB connected successfully');
       
-      // Auto-create admin user only once (skip if already created)
-      if (!adminCreated) {
-        try {
-          const existingAdmin = await User.findOne({ email: 'admin@metacodsar.com' });
-          if (!existingAdmin) {
-            const hashedPassword = await bcrypt.hash('password', 10);
-            const admin = new User({
-              name: 'Admin User',
-              email: 'admin@metacodsar.com',
-              password: hashedPassword,
-              phone: '+1234567890',
-              designation: 'System Administrator',
-              role: 'admin',
-              isActive: true
-            });
-            await admin.save();
-            console.log('✅ Admin user created successfully');
-            adminCreated = true;
-          } else {
-            console.log('ℹ️  Admin user already exists');
-            adminCreated = true;
-          }
-        } catch (error) {
-          console.log('⚠️  Error creating admin user:', error.message);
-          // Don't fail the connection if admin creation fails
-        }
-      }
+      // Create admin user in background (non-blocking)
+      createAdminUserInBackground();
       
       return true;
     } catch (err) {
       console.log('⚠️  MongoDB connection error:', err.message);
-      connectionPromise = null; // Reset promise on error
+      connectionPromise = null;
       return false;
     }
   })();
 
   try {
-    // Add timeout wrapper
+    // Aggressive timeout - 2.5 seconds max
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Connection timeout')), 5000)
+      setTimeout(() => reject(new Error('Connection timeout')), 2500)
     );
     
     return await Promise.race([connectionPromise, timeoutPromise]);
@@ -192,11 +199,47 @@ const connectDB = async () => {
   }
 };
 
-// Connect on startup (for serverless, this will be called on first request)
-// Don't await - let it connect in background
-connectDB().catch(err => {
-  console.error('Failed to connect to MongoDB:', err.message);
-});
+// Create admin user in background (non-blocking)
+const createAdminUserInBackground = async () => {
+  // Prevent multiple simultaneous admin creation attempts
+  if (adminCreationPromise) {
+    return adminCreationPromise;
+  }
+  
+  adminCreationPromise = (async () => {
+    try {
+      const existingAdmin = await User.findOne({ email: 'admin@metacodsar.com' });
+      if (!existingAdmin) {
+        const hashedPassword = await bcrypt.hash('password', 10);
+        const admin = new User({
+          name: 'Admin User',
+          email: 'admin@metacodsar.com',
+          password: hashedPassword,
+          phone: '+1234567890',
+          designation: 'System Administrator',
+          role: 'admin',
+          isActive: true
+        });
+        await admin.save();
+        console.log('✅ Admin user created successfully');
+      } else {
+        console.log('ℹ️  Admin user already exists');
+      }
+    } catch (error) {
+      console.log('⚠️  Error creating admin user:', error.message);
+      // Don't throw - this is background task
+    } finally {
+      adminCreationPromise = null;
+    }
+  })();
+  
+  // Don't await - let it run in background
+  adminCreationPromise.catch(() => {
+    adminCreationPromise = null;
+  });
+};
+
+// Don't connect on startup - let it connect on first request (faster cold start)
 
 // Health check endpoint (no DB required)
 app.get('/api/health', (req, res) => {
@@ -212,7 +255,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // Middleware to ensure MongoDB connection before handling requests (except health check)
-// Optimized for speed - don't block too long
+// Ultra-fast - aggressive timeout
 app.use(async (req, res, next) => {
   // Skip health check and root endpoint
   if (req.path === '/api/health' || req.path === '/') {
@@ -224,21 +267,28 @@ app.use(async (req, res, next) => {
     return next();
   }
   
-  // Try to connect with timeout
+  // Try to connect with aggressive timeout (2.5 seconds max)
   try {
     const connectPromise = connectDB();
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Connection timeout')), 4000)
+      setTimeout(() => reject(new Error('Connection timeout')), 2500)
     );
     
     const connected = await Promise.race([connectPromise, timeoutPromise]);
     
     if (!connected) {
+      // If connection is in progress, allow request to proceed (optimistic)
+      if (mongoose.connection.readyState === 2) {
+        console.log('⏳ Connection in progress, proceeding with request');
+        return next();
+      }
+      
       return res.status(503).json({ 
-        message: 'Database connection timeout. Please try again.',
+        message: 'Database connection timeout. Please try again in 2 seconds.',
         error: 'MongoDB connection timeout',
         hint: 'Server is starting up. Please wait a moment and retry.',
-        retry: true
+        retry: true,
+        retryAfter: 2
       });
     }
     
@@ -254,7 +304,8 @@ app.use(async (req, res, next) => {
       message: 'Database connection failed. Please try again.',
       error: 'MongoDB not connected',
       hint: 'Check MONGODB_URI in Vercel environment variables',
-      retry: true
+      retry: true,
+      retryAfter: 2
     });
   }
 });

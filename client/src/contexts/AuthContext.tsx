@@ -161,9 +161,6 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
         console.log('✅ Server connection successful!');
       }
 
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-      
       // Build login URLs to try
       const loginUrls: string[] = [];
       
@@ -195,39 +192,82 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
       
       console.log('🔍 Attempting login with URLs:', loginUrls);
       
-      // Try login request with multiple URLs
+      // Try login request with retry logic (max 2 retries)
       let response: Response | null = null;
       let lastError: any = null;
+      const maxRetries = 2;
       
       for (const loginUrl of loginUrls) {
-        try {
-          console.log(`📡 Trying: ${loginUrl}`);
-          response = await fetch(loginUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ email, password }),
-            signal: controller.signal,
-            mode: 'cors',
-          });
-          
-          // If successful, break out of loop
-          if (response.ok || response.status !== 404) {
-            console.log(`✅ Success with: ${loginUrl}`);
-            break;
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+          try {
+            if (attempt > 0) {
+              console.log(`🔄 Retry attempt ${attempt} for: ${loginUrl}`);
+              // Wait before retry (exponential backoff)
+              await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+            } else {
+              console.log(`📡 Trying: ${loginUrl}`);
+            }
+            
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+            
+            response = await fetch(loginUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ email, password }),
+              signal: controller.signal,
+              mode: 'cors',
+            });
+            
+            clearTimeout(timeoutId);
+            
+            // If successful, break out of loops
+            if (response.ok) {
+              console.log(`✅ Success with: ${loginUrl}`);
+              break;
+            }
+            
+            // If 503/504 (timeout/connection), retry
+            if (response.status === 503 || response.status === 504) {
+              const retryAfter = attempt < maxRetries ? 2 : 0;
+              if (retryAfter > 0) {
+                console.log(`⏳ Server timeout, will retry in ${retryAfter} seconds...`);
+                continue;
+              }
+            }
+            
+            // If not 404, break (might be auth error)
+            if (response.status !== 404) {
+              break;
+            }
+          } catch (fetchError: any) {
+            clearTimeout(timeoutId);
+            console.warn(`❌ Failed: ${loginUrl} (attempt ${attempt + 1})`, fetchError.message);
+            lastError = fetchError;
+            
+            // If timeout and more retries left, continue
+            if (fetchError.name === 'AbortError' && attempt < maxRetries) {
+              console.log(`⏳ Request timeout, retrying...`);
+              continue;
+            }
+            
+            // If last attempt, break to next URL
+            if (attempt === maxRetries) {
+              break;
+            }
           }
-        } catch (fetchError: any) {
-          console.warn(`❌ Failed: ${loginUrl}`, fetchError.message);
-          lastError = fetchError;
-          // Continue to next URL
-          continue;
+        }
+        
+        // If we got a successful response, break out of URL loop
+        if (response && response.ok) {
+          break;
         }
       }
       
       // If all URLs failed
       if (!response || !response.ok) {
-        clearTimeout(timeoutId);
         
         // If production and no API_BASE_URL, show helpful error
         if (isProduction && !API_BASE_URL) {
