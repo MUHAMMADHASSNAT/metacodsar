@@ -9,9 +9,10 @@ const User = require('../models/User');
 const app = express();
 
 // CORS configuration for Vercel
-const FRONTEND_URL = process.env.FRONTEND_URL || 'https://metacodsar-h3a4.vercel.app';
+// Support both CLIENT_URL and FRONTEND_URL (CLIENT_URL has priority)
+const CLIENT_URL = process.env.CLIENT_URL || process.env.FRONTEND_URL || 'https://metacodsar-h3a4.vercel.app';
 const allowedOrigins = [
-  FRONTEND_URL,
+  CLIENT_URL,
   'https://metacodsar-h3a4.vercel.app', // Main frontend URL
   'https://metacodsar-h3a4-git-main.vercel.app', // Vercel preview URLs
   'https://metacodsar-h3a4-git-*.vercel.app',
@@ -23,11 +24,11 @@ const allowedOrigins = [
   'http://127.0.0.1:5174'
 ].filter(Boolean); // Remove undefined values
 
-if (FRONTEND_URL) {
-  console.log('✅ FRONTEND_URL configured:', FRONTEND_URL);
+if (CLIENT_URL) {
+  console.log('✅ CLIENT_URL configured:', CLIENT_URL);
 } else {
-  console.warn('⚠️ FRONTEND_URL not set in environment variables');
-  console.warn('   Set FRONTEND_URL in Vercel Dashboard → Server Project → Environment Variables');
+  console.warn('⚠️ CLIENT_URL or FRONTEND_URL not set in environment variables');
+  console.warn('   Set CLIENT_URL (or FRONTEND_URL) in Vercel Dashboard → Server Project → Environment Variables');
 }
 
 app.use(cors({
@@ -51,8 +52,8 @@ app.use(cors({
       if (process.env.NODE_ENV === 'production') {
         console.log('⚠️ CORS: Blocked origin:', origin);
         console.log('   Allowed origins:', allowedOrigins);
-        if (FRONTEND_URL) {
-          console.log('   Make sure client URL matches FRONTEND_URL:', FRONTEND_URL);
+        if (CLIENT_URL) {
+          console.log('   Make sure client URL matches CLIENT_URL:', CLIENT_URL);
         }
       }
       // For now, allow all origins (restrict in production if needed)
