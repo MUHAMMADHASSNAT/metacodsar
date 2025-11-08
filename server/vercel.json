@@ -22,7 +22,6 @@
   "env": {
     "NODE_ENV": "production"
   },
-  "_comment": "Environment variables must be set in Vercel Dashboard: MONGODB_URI, FRONTEND_URL, JWT_SECRET",
   "functions": {
     "api/index.js": {
       "maxDuration": 10
