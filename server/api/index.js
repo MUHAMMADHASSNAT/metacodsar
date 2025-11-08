@@ -174,13 +174,21 @@ const connectDB = async () => {
       });
       
       console.log('✅ MongoDB connected successfully');
+      console.log('📊 Database:', mongoose.connection.name);
+      console.log('🖥️  Host:', mongoose.connection.host);
+      console.log('🔌 Ready State:', mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected');
       
       // Create admin user in background (non-blocking)
       createAdminUserInBackground();
       
       return true;
     } catch (err) {
-      console.log('⚠️  MongoDB connection error:', err.message);
+      console.error('❌ MongoDB connection error:', err.message);
+      console.error('❌ Error details:', {
+        name: err.name,
+        message: err.message,
+        code: err.code
+      });
       connectionPromise = null;
       return false;
     }
@@ -240,18 +248,56 @@ const createAdminUserInBackground = async () => {
   });
 };
 
-// Don't connect on startup - let it connect on first request (faster cold start)
+// Initialize MongoDB connection on startup (for Vercel)
+// This ensures connection is ready when first request comes
+const initializeMongoDB = async () => {
+  if (!MONGODB_URI) {
+    console.warn('⚠️  MONGODB_URI not set in environment variables');
+    console.warn('   MongoDB connection will fail. Please set MONGODB_URI in Vercel Dashboard.');
+    return;
+  }
+
+  console.log('🔄 Initializing MongoDB connection...');
+  console.log('📡 MONGODB_URI:', MONGODB_URI.replace(/\/\/[^:]+:[^@]+@/, '//***:***@')); // Hide credentials
+  
+  try {
+    const connected = await connectDB();
+    if (connected) {
+      console.log('✅ MongoDB initialized successfully on startup');
+    } else {
+      console.warn('⚠️  MongoDB initialization failed, will retry on first request');
+    }
+  } catch (error) {
+    console.error('❌ MongoDB initialization error:', error.message);
+    console.warn('⚠️  Will retry connection on first request');
+  }
+};
+
+// Start MongoDB connection initialization (non-blocking)
+initializeMongoDB().catch(err => {
+  console.error('❌ Failed to initialize MongoDB:', err.message);
+});
 
 // Health check endpoint (no DB required)
 app.get('/api/health', (req, res) => {
   const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+  const dbStateText = {
+    0: 'disconnected',
+    1: 'connected',
+    2: 'connecting',
+    3: 'disconnecting'
+  };
+  
   res.json({ 
     status: 'OK', 
     message: 'MetaCodsar API is running',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development',
     database: dbStatus,
-    mongodb: dbStatus
+    mongodb: dbStatus,
+    mongodbState: mongoose.connection.readyState,
+    mongodbStateText: dbStateText[mongoose.connection.readyState] || 'unknown',
+    mongodbUriSet: !!MONGODB_URI
   });
 });
 
