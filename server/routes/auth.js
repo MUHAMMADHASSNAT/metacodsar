@@ -1,6 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 const User = require('../models/User');
 
 const router = express.Router();
@@ -35,6 +36,18 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: 'Email and password are required' });
     }
 
+    // Check MongoDB connection first
+    if (mongoose.connection.readyState !== 1) {
+      console.error('❌ MongoDB not connected. State:', mongoose.connection.readyState);
+      return res.status(503).json({ 
+        message: 'Database connection not ready. Please try again in a moment.',
+        error: 'MongoDB not connected',
+        mongodbState: mongoose.connection.readyState,
+        retry: true,
+        retryAfter: 3
+      });
+    }
+
     // Find user by email (with increased timeout for slow connections)
     let user;
     try {
@@ -46,23 +59,32 @@ router.post('/login', async (req, res) => {
       
       user = await Promise.race([queryPromise, timeoutPromise]);
     } catch (queryError) {
-      console.error('❌ User query error:', queryError.message);
+      console.error('❌ User query error:', queryError);
+      console.error('❌ MongoDB connection state:', mongoose.connection.readyState);
+      console.error('❌ Error details:', {
+        name: queryError.name,
+        message: queryError.message,
+        stack: queryError.stack
+      });
       
       // Check if it's a timeout or connection error
-      if (queryError.message.includes('timeout') || queryError.message.includes('Connection')) {
+      if (queryError.message.includes('timeout') || queryError.message.includes('Connection') || queryError.message.includes('buffering')) {
         return res.status(503).json({ 
           message: 'Database query timeout. The server is processing your request. Please try again in a moment.',
           error: 'Query timeout',
+          mongodbState: mongoose.connection.readyState,
           retry: true,
           retryAfter: 3
         });
       }
       
-      // For other errors, return 500
+      // For other errors, return 500 with details
       console.error('❌ Database query error:', queryError);
       return res.status(500).json({ 
         message: 'Database error occurred. Please try again.',
-        error: 'Database query failed',
+        error: queryError.message || 'Database query failed',
+        errorName: queryError.name,
+        mongodbState: mongoose.connection.readyState,
         retry: true,
         retryAfter: 2
       });
@@ -156,10 +178,40 @@ router.post('/login', async (req, res) => {
     });
   } catch (error) {
     const duration = Date.now() - startTime;
-    console.error(`❌ Login error after ${duration}ms:`, error.message);
+    console.error(`❌ Login error after ${duration}ms:`, error);
+    console.error('❌ Error stack:', error.stack);
+    console.error('❌ MongoDB connection state:', mongoose.connection.readyState);
+    
+    // More detailed error response
+    let errorMessage = 'Server error';
+    let errorDetails = {};
+    
+    // Check MongoDB connection
+    if (mongoose.connection.readyState !== 1) {
+      errorMessage = 'Database connection failed';
+      errorDetails = {
+        mongodbState: mongoose.connection.readyState,
+        states: {
+          0: 'disconnected',
+          1: 'connected',
+          2: 'connecting',
+          3: 'disconnecting'
+        }
+      };
+    } else if (error.message) {
+      errorMessage = error.message;
+      errorDetails = {
+        name: error.name,
+        message: error.message
+      };
+    }
+    
     res.status(500).json({ 
-      message: 'Server error',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: errorMessage,
+      error: errorDetails,
+      mongodbConnected: mongoose.connection.readyState === 1,
+      retry: true,
+      retryAfter: 3
     });
   }
 });
