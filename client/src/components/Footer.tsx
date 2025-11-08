@@ -1,4 +1,32 @@
+import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../config/api';
+
 const Footer = () => {
+  const [contactInfo, setContactInfo] = useState({
+    email: 'info@metacodsar.com',
+    phone: '+92 300 1234567',
+    address: 'Pakistan'
+  });
+
+  useEffect(() => {
+    const fetchContactInfo = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/contact`);
+        if (response.ok) {
+          const data = await response.json();
+          setContactInfo({
+            email: data.email || 'info@metacodsar.com',
+            phone: data.phone || '+92 300 1234567',
+            address: data.address || 'Pakistan'
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching contact info:', error);
+      }
+    };
+    fetchContactInfo();
+  }, []);
+
   return (
     <footer className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white border-t border-emerald-500/20">
       <div className="max-w-7xl mx-auto py-12 px-4">
@@ -28,9 +56,9 @@ const Footer = () => {
           <div>
             <h4 className="text-lg font-semibold mb-4 text-emerald-400">Contact</h4>
             <div className="text-slate-300 space-y-2">
-              <p>Email: info@metacodsar.com</p>
-              <p>Phone: +92 300 XXX XXXX</p>
-              <p className="text-emerald-400">📍 Pakistan</p>
+              <p>Email: {contactInfo.email}</p>
+              <p>Phone: {contactInfo.phone}</p>
+              <p className="text-emerald-400">📍 {contactInfo.address}</p>
             </div>
           </div>
         </div>

@@ -16,7 +16,10 @@ import {
   Github,
   LogOut,
   User,
-  Lock
+  Lock,
+  Mail,
+  Phone,
+  MapPin
 } from 'lucide-react';
 
 import { API_BASE_URL, getImageUrl } from '../config/api';
@@ -46,7 +49,7 @@ interface Project {
 
 const AdminDashboard = () => {
   const { user, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState<'overview' | 'team' | 'projects'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'team' | 'projects' | 'contact'>('overview');
   
   // Stats
   const [stats, setStats] = useState({
@@ -122,9 +125,19 @@ const AdminDashboard = () => {
 
   const [isLoading, setIsLoading] = useState(true);
 
+  // Contact Management
+  const [showContactEditor, setShowContactEditor] = useState(false);
+  const [contactData, setContactData] = useState({
+    email: 'info@metacodsar.com',
+    phone: '+92 300 1234567',
+    address: 'Pakistan',
+    officeHours: 'Mon-Fri from 9am to 6pm'
+  });
+
   useEffect(() => {
     fetchData();
     fetchHomeStats();
+    fetchContactInfo();
     // Initialize username change form with current user data
     if (user) {
       setUsernameChangeData({ newName: user.name, newEmail: user.email });
@@ -142,6 +155,50 @@ const AdminDashboard = () => {
       }
     } catch (error) {
       console.error('Error fetching home stats:', error);
+    }
+  };
+
+  const fetchContactInfo = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/contact`);
+      if (response.ok) {
+        const data = await response.json();
+        setContactData({
+          email: data.email || 'info@metacodsar.com',
+          phone: data.phone || '+92 300 1234567',
+          address: data.address || 'Pakistan',
+          officeHours: data.officeHours || 'Mon-Fri from 9am to 6pm'
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching contact info:', error);
+    }
+  };
+
+  const handleSaveContactInfo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/api/contact`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(contactData)
+      });
+      
+      if (response.ok) {
+        alert('✅ Contact information updated successfully!');
+        setShowContactEditor(false);
+        fetchContactInfo(); // Refresh to show updated info
+      } else {
+        const error = await response.json();
+        alert(`❌ Error: ${error.message || 'Failed to update contact information'}`);
+      }
+    } catch (error: any) {
+      console.error('Error saving contact info:', error);
+      alert(`❌ Error: ${error.message || 'Failed to save contact information'}`);
     }
   };
   
@@ -673,6 +730,17 @@ const AdminDashboard = () => {
               <FolderPlus className="inline-block mr-2" size={20} />
               Projects ({projects.length})
             </button>
+            <button
+              onClick={() => setActiveTab('contact')}
+              className={`flex-1 px-6 py-4 text-center font-semibold transition-all ${
+                activeTab === 'contact'
+                  ? 'bg-gradient-to-r from-emerald-600 to-green-600 text-white shadow-lg'
+                  : 'text-gray-700 hover:bg-gradient-to-r hover:from-emerald-50 hover:to-green-50'
+              }`}
+            >
+              <Mail className="inline-block mr-2" size={20} />
+              Contact Info
+            </button>
           </div>
         </div>
 
@@ -892,6 +960,79 @@ const AdminDashboard = () => {
                   </button>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Contact Management Tab */}
+        {activeTab === 'contact' && (
+          <div className="bg-white rounded-2xl shadow-lg p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 flex items-center">
+                <Mail className="mr-2" size={24} />
+                Contact Information
+              </h2>
+              <button
+                onClick={() => setShowContactEditor(true)}
+                className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-xl hover:from-emerald-700 hover:to-green-700 transition-all duration-300 shadow-lg"
+              >
+                <Edit size={18} />
+                <span>Edit Contact Info</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl border border-blue-200">
+                <div className="flex items-center mb-4">
+                  <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mr-4">
+                    <Mail className="text-white" size={24} />
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900">Email</h3>
+                </div>
+                <p className="text-gray-700 font-semibold">{contactData.email}</p>
+                <p className="text-sm text-gray-500 mt-2">Send us an email anytime</p>
+              </div>
+
+              <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-xl border border-green-200">
+                <div className="flex items-center mb-4">
+                  <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mr-4">
+                    <Phone className="text-white" size={24} />
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900">Phone</h3>
+                </div>
+                <p className="text-gray-700 font-semibold">{contactData.phone}</p>
+                <p className="text-sm text-gray-500 mt-2">{contactData.officeHours}</p>
+              </div>
+
+              <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-xl border border-purple-200">
+                <div className="flex items-center mb-4">
+                  <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center mr-4">
+                    <MapPin className="text-white" size={24} />
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900">Address</h3>
+                </div>
+                <p className="text-gray-700 font-semibold">{contactData.address}</p>
+                <p className="text-sm text-gray-500 mt-2">Come say hello at our office</p>
+              </div>
+            </div>
+
+            <div className="mt-8 p-6 bg-gray-50 rounded-xl border border-gray-200">
+              <h3 className="text-lg font-bold text-gray-900 mb-4">Preview</h3>
+              <p className="text-sm text-gray-600 mb-4">Yeh information Contact page aur Footer mein dikhegi:</p>
+              <div className="space-y-3">
+                <div className="flex items-center space-x-3">
+                  <Mail className="text-emerald-600" size={20} />
+                  <span className="text-gray-700">{contactData.email}</span>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <Phone className="text-emerald-600" size={20} />
+                  <span className="text-gray-700">{contactData.phone}</span>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <MapPin className="text-emerald-600" size={20} />
+                  <span className="text-gray-700">{contactData.address}</span>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -1583,6 +1724,108 @@ const AdminDashboard = () => {
                 >
                   <User size={20} />
                   <span>Update</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Contact Info Editor Modal */}
+      {showContactEditor && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-bold text-gray-900 flex items-center">
+                  <Mail className="mr-2" size={24} />
+                  Edit Contact Information
+                </h3>
+                <button
+                  onClick={() => setShowContactEditor(false)}
+                  className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+            <form onSubmit={handleSaveContactInfo} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                  <Mail className="mr-2" size={18} />
+                  Email Address *
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={contactData.email}
+                  onChange={(e) => setContactData({ ...contactData, email: e.target.value })}
+                  placeholder="info@metacodsar.com"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+                <p className="text-xs text-gray-500 mt-1">Yeh email Contact page aur Footer mein dikhegi</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                  <Phone className="mr-2" size={18} />
+                  Phone Number *
+                </label>
+                <input
+                  type="tel"
+                  required
+                  value={contactData.phone}
+                  onChange={(e) => setContactData({ ...contactData, phone: e.target.value })}
+                  placeholder="+92 300 1234567"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+                <p className="text-xs text-gray-500 mt-1">Format: +92 300 1234567</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                  <MapPin className="mr-2" size={18} />
+                  Address *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={contactData.address}
+                  onChange={(e) => setContactData({ ...contactData, address: e.target.value })}
+                  placeholder="Pakistan"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+                <p className="text-xs text-gray-500 mt-1">Office location ya country name</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Office Hours
+                </label>
+                <input
+                  type="text"
+                  value={contactData.officeHours}
+                  onChange={(e) => setContactData({ ...contactData, officeHours: e.target.value })}
+                  placeholder="Mon-Fri from 9am to 6pm"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+                <p className="text-xs text-gray-500 mt-1">Office timings (optional)</p>
+              </div>
+
+              <div className="flex space-x-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowContactEditor(false)}
+                  className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-xl font-semibold hover:from-emerald-700 hover:to-green-700 transition-all shadow-lg flex items-center justify-center space-x-2"
+                >
+                  <Save className="inline-block" size={18} />
+                  <span>Save Contact Info</span>
                 </button>
               </div>
             </form>

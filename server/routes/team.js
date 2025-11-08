@@ -5,17 +5,9 @@ const path = require('path');
 const User = require('../models/User');
 const router = express.Router();
 
-// Configure multer for team member profile pictures
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const uploadPath = path.join(__dirname, '../uploads/team/');
-    cb(null, uploadPath);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'team-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
+// Configure multer for team member profile pictures (using memory storage for Vercel serverless)
+// Vercel serverless functions don't support disk storage, so we use memory storage
+const storage = multer.memoryStorage();
 
 const upload = multer({ 
   storage: storage,
@@ -30,6 +22,12 @@ const upload = multer({
     fileSize: 5 * 1024 * 1024 // 5MB limit
   }
 });
+
+// Helper function to convert buffer to base64 data URI
+const bufferToDataURI = (buffer, mimetype) => {
+  const base64 = buffer.toString('base64');
+  return `data:${mimetype};base64,${base64}`;
+};
 
 // Middleware to verify JWT token
 const authenticateToken = (req, res, next) => {
@@ -78,7 +76,12 @@ router.post('/', authenticateToken, (req, res, next) => {
     }
 
     const { name, email, password, phone, designation } = req.body;
-    const profilePicture = req.file ? `http://localhost:5001/team/${req.file.filename}` : '';
+    
+    // Convert uploaded file to base64 data URI for Vercel serverless
+    let profilePicture = '';
+    if (req.file) {
+      profilePicture = bufferToDataURI(req.file.buffer, req.file.mimetype);
+    }
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -128,7 +131,12 @@ router.put('/:id', authenticateToken, (req, res, next) => {
 
     const { name, email, phone, designation, isActive, password } = req.body;
     const userId = req.params.id;
-    const profilePicture = req.file ? `http://localhost:5001/team/${req.file.filename}` : undefined;
+    
+    // Convert uploaded file to base64 data URI for Vercel serverless
+    let profilePicture = undefined;
+    if (req.file) {
+      profilePicture = bufferToDataURI(req.file.buffer, req.file.mimetype);
+    }
 
     // Check if email is being changed and if it's already taken
     if (email) {

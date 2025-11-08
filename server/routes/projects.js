@@ -4,17 +4,9 @@ const path = require('path');
 const Project = require('../models/Project');
 const router = express.Router();
 
-// Configure multer for project images
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const uploadPath = path.join(__dirname, '../uploads/projects/');
-    cb(null, uploadPath);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'project-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
+// Configure multer for project images (using memory storage for Vercel serverless)
+// Vercel serverless functions don't support disk storage, so we use memory storage
+const storage = multer.memoryStorage();
 
 const upload = multer({ 
   storage: storage,
@@ -29,6 +21,12 @@ const upload = multer({
     fileSize: 5 * 1024 * 1024 // 5MB limit
   }
 });
+
+// Helper function to convert buffer to base64 data URI
+const bufferToDataURI = (buffer, mimetype) => {
+  const base64 = buffer.toString('base64');
+  return `data:${mimetype};base64,${base64}`;
+};
 
 // Get all projects
 router.get('/', async (req, res) => {
@@ -61,9 +59,10 @@ router.post('/', upload.single('image'), async (req, res) => {
     const { title, description, technologies, imageUrl, githubUrl, category } = req.body;
     
     // Use uploaded file if available, otherwise use provided imageUrl
+    // Convert uploaded file to base64 data URI for Vercel serverless
     let finalImageUrl = imageUrl;
     if (req.file) {
-      finalImageUrl = `http://localhost:5001/projects/${req.file.filename}`;
+      finalImageUrl = bufferToDataURI(req.file.buffer, req.file.mimetype);
     }
 
     const project = new Project({
@@ -97,8 +96,9 @@ router.put('/:id', upload.single('image'), async (req, res) => {
     }
     
     // Handle image upload
+    // Convert uploaded file to base64 data URI for Vercel serverless
     if (req.file) {
-      updateData.imageUrl = `http://localhost:5001/projects/${req.file.filename}`;
+      updateData.imageUrl = bufferToDataURI(req.file.buffer, req.file.mimetype);
     } else if (imageUrl !== undefined) {
       updateData.imageUrl = imageUrl;
     }

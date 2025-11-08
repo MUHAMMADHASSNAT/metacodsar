@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Mail, Phone, MapPin, Send, CheckCircle } from 'lucide-react';
 import { API_BASE_URL } from '../config/api';
 
@@ -13,6 +13,33 @@ const Contact = () => {
   });
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [contactInfo, setContactInfo] = useState({
+    email: 'info@metacodsar.com',
+    phone: '+92 300 1234567',
+    address: 'Pakistan',
+    officeHours: 'Mon-Fri from 9am to 6pm'
+  });
+
+  // Fetch contact information from API
+  useEffect(() => {
+    const fetchContactInfo = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/contact`);
+        if (response.ok) {
+          const data = await response.json();
+          setContactInfo({
+            email: data.email || 'info@metacodsar.com',
+            phone: data.phone || '+92 300 1234567',
+            address: data.address || 'Pakistan',
+            officeHours: data.officeHours || 'Mon-Fri from 9am to 6pm'
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching contact info:', error);
+      }
+    };
+    fetchContactInfo();
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({
@@ -62,23 +89,23 @@ const Contact = () => {
     }
   };
 
-  const contactInfo = [
+  const contactInfoCards = [
     {
       icon: Mail,
       title: 'Email Us',
-      details: 'info@metacodsar.com',
+      details: contactInfo.email,
       description: 'Send us an email anytime'
     },
     {
       icon: Phone,
       title: 'Call Us',
-      details: '+92 300 1234567',
-      description: 'Mon-Fri from 9am to 6pm'
+      details: contactInfo.phone,
+      description: contactInfo.officeHours
     },
     {
       icon: MapPin,
       title: 'Visit Us',
-      details: 'Pakistan',
+      details: contactInfo.address,
       description: 'Come say hello at our office'
     }
   ];
@@ -260,7 +287,7 @@ const Contact = () => {
             </div>
 
             <div className="space-y-6">
-              {contactInfo.map((info, index) => {
+              {contactInfoCards.map((info, index) => {
                 const IconComponent = info.icon;
                 return (
                   <div key={index} className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
