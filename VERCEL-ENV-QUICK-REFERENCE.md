@@ -1,10 +1,17 @@
 # ⚡ Vercel Environment Variables - Quick Reference
 
+## 🎯 Current Project URLs
+
+- **Frontend (Client):** `https://metacodsar-h3a4.vercel.app`
+- **Backend (Server):** `https://metacodsar-2vf1.vercel.app`
+
+---
+
 ## 🚀 Copy-Paste Ready Values
 
-### Server Project (Backend) - Vercel Dashboard
+### 📦 Server Project (Backend) - `metacodsar-2vf1`
 
-**Settings → Environment Variables → Add New:**
+**Vercel Dashboard → Server Project → Settings → Environment Variables → Add New:**
 
 #### 1️⃣ MONGODB_URI
 ```
@@ -20,6 +27,10 @@ Value: https://metacodsar-h3a4.vercel.app
 Environment: ✅ Production ✅ Preview ✅ Development
 ```
 
+**⚠️ Important:** 
+- No trailing slash (`/` end mein nahi)
+- Exact URL: `https://metacodsar-h3a4.vercel.app`
+
 #### 3️⃣ JWT_SECRET
 ```
 Variable Name: JWT_SECRET
@@ -29,9 +40,9 @@ Environment: ✅ Production ✅ Preview ✅ Development
 
 ---
 
-### Client Project (Frontend) - Vercel Dashboard
+### 🎨 Client Project (Frontend) - `metacodsar-h3a4`
 
-**Settings → Environment Variables → Add New:**
+**Vercel Dashboard → Client Project → Settings → Environment Variables → Add New:**
 
 #### 1️⃣ VITE_API_URL
 ```
@@ -42,7 +53,8 @@ Environment: ✅ Production ✅ Preview ✅ Development
 
 **⚠️ Important:** 
 - No trailing slash (`/` end mein nahi)
-- Variable name exactly `VITE_API_URL`
+- Variable name exactly `VITE_API_URL` (typo nahi)
+- Exact URL: `https://metacodsar-2vf1.vercel.app`
 
 ---
 
