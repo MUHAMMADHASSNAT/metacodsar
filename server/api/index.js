@@ -107,6 +107,7 @@ const MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URI;
 // Connection promise cache (for serverless reuse)
 let connectionPromise = null;
 let adminCreationPromise = null;
+let isConnecting = false;
 
 // Optimize MongoDB URI for faster connection
 const optimizeMongoURI = (uri) => {
@@ -114,7 +115,7 @@ const optimizeMongoURI = (uri) => {
   
   // Add connection options if not present
   if (!uri.includes('?')) {
-    return `${uri}?retryWrites=true&w=majority&maxPoolSize=1&minPoolSize=0&maxIdleTimeMS=30000`;
+    return `${uri}?retryWrites=true&w=majority&maxPoolSize=10&minPoolSize=2&maxIdleTimeMS=30000&serverSelectionTimeoutMS=10000`;
   }
   
   // Add options if query params exist
@@ -124,6 +125,9 @@ const optimizeMongoURI = (uri) => {
   if (!uri.includes('w=majority')) {
     uri += '&w=majority';
   }
+  if (!uri.includes('serverSelectionTimeoutMS')) {
+    uri += '&serverSelectionTimeoutMS=10000';
+  }
   
   return uri;
 };
@@ -131,46 +135,70 @@ const optimizeMongoURI = (uri) => {
 // Function to ensure MongoDB connection (ultra-fast)
 const connectDB = async () => {
   if (!MONGODB_URI) {
-    console.warn('⚠️  MONGODB_URI not set in environment variables');
+    console.error('❌ MONGODB_URI not set in environment variables');
+    console.error('   Please set MONGODB_URI in Vercel Dashboard → Settings → Environment Variables');
     return false;
   }
 
   // If already connected, return immediately
   if (mongoose.connection.readyState === 1) {
+    console.log('✅ MongoDB already connected');
     return true;
   }
 
   // If connection is in progress, wait for it (but with timeout)
-  if (mongoose.connection.readyState === 2) {
+  if (mongoose.connection.readyState === 2 || isConnecting) {
     if (connectionPromise) {
       try {
+        console.log('⏳ MongoDB connection in progress, waiting...');
         const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Connection timeout')), 8000) // Increased to 8 seconds
+          setTimeout(() => reject(new Error('Connection timeout')), 15000) // 15 seconds
         );
         return await Promise.race([connectionPromise, timeoutPromise]);
       } catch (err) {
         console.log('⚠️  Waiting for connection timed out');
         connectionPromise = null;
+        isConnecting = false;
       }
     }
   }
 
-  // Create connection promise with aggressive timeout
+  // Prevent multiple simultaneous connection attempts
+  if (isConnecting) {
+    console.log('⏳ Connection already in progress, waiting...');
+    if (connectionPromise) {
+      try {
+        return await connectionPromise;
+      } catch (err) {
+        isConnecting = false;
+        connectionPromise = null;
+      }
+    }
+  }
+
+  isConnecting = true;
+
+  // Create connection promise with increased timeout
   connectionPromise = (async () => {
     try {
       const optimizedURI = optimizeMongoURI(MONGODB_URI);
       
-      // Optimized connection settings for Vercel serverless (increased timeouts for reliability)
+      console.log('🔄 Attempting MongoDB connection...');
+      console.log('📡 Connection URI:', optimizedURI.replace(/\/\/[^:]+:[^@]+@/, '//***:***@'));
+      
+      // Optimized connection settings for Vercel serverless
       await mongoose.connect(optimizedURI, {
         useNewUrlParser: true,
         useUnifiedTopology: true,
-        serverSelectionTimeoutMS: 8000, // 8 seconds (increased for slow connections)
+        serverSelectionTimeoutMS: 15000, // 15 seconds
         socketTimeoutMS: 45000,
-        connectTimeoutMS: 8000, // 8 seconds (increased for slow connections)
-        maxPoolSize: 1,
-        minPoolSize: 0, // Don't keep connection open
-        maxIdleTimeMS: 10000, // Close idle connections quickly
+        connectTimeoutMS: 15000, // 15 seconds
+        maxPoolSize: 10,
+        minPoolSize: 2,
+        maxIdleTimeMS: 30000,
         heartbeatFrequencyMS: 10000,
+        retryWrites: true,
+        w: 'majority'
       });
       
       console.log('✅ MongoDB connected successfully');
@@ -178,32 +206,64 @@ const connectDB = async () => {
       console.log('🖥️  Host:', mongoose.connection.host);
       console.log('🔌 Ready State:', mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected');
       
+      // Set up connection event handlers
+      mongoose.connection.on('error', (err) => {
+        console.error('❌ MongoDB connection error:', err.message);
+      });
+
+      mongoose.connection.on('disconnected', () => {
+        console.warn('⚠️  MongoDB disconnected');
+        isConnecting = false;
+        connectionPromise = null;
+      });
+
+      mongoose.connection.on('reconnected', () => {
+        console.log('✅ MongoDB reconnected');
+      });
+      
       // Create admin user in background (non-blocking)
       createAdminUserInBackground();
       
+      isConnecting = false;
       return true;
     } catch (err) {
+      isConnecting = false;
       console.error('❌ MongoDB connection error:', err.message);
       console.error('❌ Error details:', {
         name: err.name,
         message: err.message,
-        code: err.code
+        code: err.code,
+        stack: err.stack
       });
+      
+      // More specific error messages
+      if (err.message.includes('authentication failed')) {
+        console.error('🔐 Authentication Error: Check username and password in MONGODB_URI');
+      } else if (err.message.includes('ENOTFOUND') || err.message.includes('getaddrinfo')) {
+        console.error('🌐 Network Error: Check MongoDB Atlas cluster URL');
+      } else if (err.message.includes('timeout')) {
+        console.error('⏱️  Timeout Error: MongoDB server might be slow or unreachable');
+      } else if (err.message.includes('IP')) {
+        console.error('🔒 IP Whitelist Error: Add your IP to MongoDB Atlas Network Access');
+      }
+      
       connectionPromise = null;
       return false;
     }
   })();
 
   try {
-    // Increased timeout - 8 seconds max for better reliability
+    // Increased timeout - 15 seconds max for better reliability
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Connection timeout')), 8000)
+      setTimeout(() => reject(new Error('Connection timeout')), 15000)
     );
     
-    return await Promise.race([connectionPromise, timeoutPromise]);
+    const result = await Promise.race([connectionPromise, timeoutPromise]);
+    return result;
   } catch (err) {
+    isConnecting = false;
     connectionPromise = null;
-    console.log('⚠️  MongoDB connection timeout:', err.message);
+    console.error('⚠️  MongoDB connection timeout:', err.message);
     return false;
   }
 };
@@ -252,30 +312,53 @@ const createAdminUserInBackground = async () => {
 // This ensures connection is ready when first request comes
 const initializeMongoDB = async () => {
   if (!MONGODB_URI) {
-    console.warn('⚠️  MONGODB_URI not set in environment variables');
-    console.warn('   MongoDB connection will fail. Please set MONGODB_URI in Vercel Dashboard.');
-    return;
+    console.error('❌ MONGODB_URI not set in environment variables');
+    console.error('   MongoDB connection will fail. Please set MONGODB_URI in Vercel Dashboard.');
+    console.error('   Vercel Dashboard → Settings → Environment Variables → Add MONGODB_URI');
+    return false;
   }
 
+  console.log('');
+  console.log('========================================');
   console.log('🔄 Initializing MongoDB connection...');
+  console.log('========================================');
   console.log('📡 MONGODB_URI:', MONGODB_URI.replace(/\/\/[^:]+:[^@]+@/, '//***:***@')); // Hide credentials
+  console.log('');
   
   try {
     const connected = await connectDB();
     if (connected) {
+      console.log('');
+      console.log('========================================');
       console.log('✅ MongoDB initialized successfully on startup');
+      console.log('========================================');
+      console.log('');
+      return true;
     } else {
+      console.warn('');
       console.warn('⚠️  MongoDB initialization failed, will retry on first request');
+      console.warn('');
+      return false;
     }
   } catch (error) {
+    console.error('');
+    console.error('========================================');
     console.error('❌ MongoDB initialization error:', error.message);
+    console.error('========================================');
     console.warn('⚠️  Will retry connection on first request');
+    console.warn('');
+    return false;
   }
 };
 
 // Start MongoDB connection initialization (non-blocking)
+// This runs immediately when serverless function loads
 initializeMongoDB().catch(err => {
+  console.error('');
+  console.error('========================================');
   console.error('❌ Failed to initialize MongoDB:', err.message);
+  console.error('========================================');
+  console.error('');
 });
 
 // Health check endpoint (no DB required)
