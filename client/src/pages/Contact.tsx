@@ -121,7 +121,7 @@ const Contact = () => {
       {/* Header */}
       <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 py-20 border-b border-emerald-500/20">
         <div className="max-w-7xl mx-auto px-4 text-center">
-          <h1 className="text-5xl font-bold bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent mb-6">Contact Us</h1>
+          <h1 className="text-5xl font-bold text-white mb-6">Contact Us</h1>
           <p className="text-xl text-slate-300 max-w-3xl mx-auto">
             Ready to start your project? Let's discuss your requirements and create something amazing together.
           </p>

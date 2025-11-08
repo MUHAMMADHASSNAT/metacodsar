@@ -24,17 +24,40 @@ interface TeamMember {
 
 const Team = () => {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
 
   useEffect(() => {
-    fetchTeamMembers();
+    // Check if data is cached
+    const cachedData = sessionStorage.getItem('teamMembers');
+    if (cachedData) {
+      try {
+        const parsed = JSON.parse(cachedData);
+        setTeamMembers(parsed);
+        // Fetch fresh data in background
+        fetchTeamMembers(true);
+      } catch (e) {
+        fetchTeamMembers();
+      }
+    } else {
+      fetchTeamMembers();
+    }
   }, []);
 
-  const fetchTeamMembers = async () => {
+  const fetchTeamMembers = async (silent = false) => {
     try {
-      setIsLoading(true);
-      const response = await fetch(`${API_BASE_URL}/api/team`);
+      if (!silent) setIsLoading(true);
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+      
+      const response = await fetch(`${API_BASE_URL}/api/team`, {
+        signal: controller.signal,
+        cache: 'default'
+      });
+      
+      clearTimeout(timeoutId);
+      
       if (response.ok) {
         const data = await response.json();
         // Map API data to component format
@@ -55,15 +78,19 @@ const Team = () => {
           socialLinks: member.socialLinks || {}
         }));
         setTeamMembers(formattedMembers);
+        // Cache the data
+        sessionStorage.setItem('teamMembers', JSON.stringify(formattedMembers));
       } else {
         console.error('Failed to fetch team members');
-        setTeamMembers([]);
+        if (!silent) setTeamMembers([]);
       }
-    } catch (error) {
-      console.error('Error fetching team members:', error);
-      setTeamMembers([]);
+    } catch (error: any) {
+      if (error.name !== 'AbortError') {
+        console.error('Error fetching team members:', error);
+        if (!silent) setTeamMembers([]);
+      }
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   };
 
@@ -75,23 +102,15 @@ const Team = () => {
     return Code;
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50 to-green-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-emerald-600 mx-auto mb-4"></div>
-          <p className="text-xl text-gray-600">Loading team...</p>
-        </div>
-      </div>
-    );
-  }
+  // Show skeleton loader only if no cached data
+  const showSkeleton = isLoading && teamMembers.length === 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50 to-green-50">
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 py-20 border-b border-emerald-500/20">
         <div className="max-w-7xl mx-auto px-4 text-center">
-          <h1 className="text-5xl font-bold bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent mb-6">Meet Our Team</h1>
+          <h1 className="text-5xl font-bold text-white mb-6">Meet Our Team</h1>
           <p className="text-xl text-slate-300 max-w-3xl mx-auto">
             Our talented team of developers, designers, and engineers working together to deliver exceptional solutions.
           </p>
@@ -142,8 +161,23 @@ const Team = () => {
       {/* Team Grid */}
       <section className="py-12">
       <div className="max-w-7xl mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {teamMembers.map((member) => (
+          {showSkeleton ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="bg-white rounded-3xl shadow-lg p-6 animate-pulse">
+                  <div className="w-40 h-40 rounded-full bg-gray-300 mx-auto mb-4"></div>
+                  <div className="h-6 bg-gray-300 rounded mb-2"></div>
+                  <div className="h-4 bg-gray-300 rounded w-2/3 mx-auto mb-4"></div>
+                  <div className="space-y-2">
+                    <div className="h-3 bg-gray-200 rounded"></div>
+                    <div className="h-3 bg-gray-200 rounded w-5/6"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {teamMembers.map((member) => (
               <div key={member.id} className="group">
                 <div className="bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden">
                   {/* Profile Image - Circular */}
@@ -245,8 +279,9 @@ const Team = () => {
                 </div>
             </div>
           ))}
+            </div>
+          )}
         </div>
-      </div>
       </section>
 
       {/* Member Modal */}

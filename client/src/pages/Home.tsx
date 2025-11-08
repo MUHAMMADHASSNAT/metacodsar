@@ -157,9 +157,9 @@ const Home = () => {
   }, [testimonials.length]);
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-green-100">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 py-24 overflow-hidden">
+      <section className="relative bg-green-100 py-24 overflow-hidden">
         {/* Background Pattern */}
         <div className="absolute inset-0 opacity-20">
           <div className="absolute top-20 left-20 w-32 h-32 bg-emerald-400 rounded-full blur-3xl"></div>
@@ -177,13 +177,13 @@ const Home = () => {
             </div>
           </div>
           
-          <h1 className="text-7xl font-bold mb-8 bg-gradient-to-r from-emerald-400 via-green-400 to-emerald-300 bg-clip-text text-transparent animate-fade-in">
+          <h1 className="text-7xl font-bold mb-8 bg-gradient-to-r from-emerald-600 via-green-600 to-emerald-700 bg-clip-text text-transparent animate-fade-in">
             METACODSAR
           </h1>
-          <p className="text-4xl mb-6 italic text-emerald-300 font-serif animate-slide-up">
+          <p className="text-4xl mb-6 italic text-emerald-700 font-serif animate-slide-up">
             CODE FROM THE HEIGHTS
           </p>
-          <p className="text-2xl mb-4 max-w-4xl mx-auto text-slate-300 font-medium animate-slide-up">
+          <p className="text-2xl mb-4 max-w-4xl mx-auto text-gray-700 font-medium animate-slide-up">
             Where Professional Projects Live - Transforming Ideas into Digital Reality
           </p>
           
@@ -235,11 +235,11 @@ const Home = () => {
       </section>
 
       {/* Enhanced Services Section */}
-      <section className="py-24 bg-gradient-to-br from-white via-emerald-50 to-green-50 relative">
+      <section className="py-24 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-20">
-            <h2 className="text-5xl font-bold text-gray-900 mb-6">Our Services</h2>
-            <p className="text-2xl text-gray-600 max-w-4xl mx-auto">
+            <h2 className="text-5xl font-bold text-white mb-6">Our Services</h2>
+            <p className="text-2xl text-slate-300 max-w-4xl mx-auto">
               Comprehensive solutions tailored to your business needs
             </p>
           </div>
@@ -248,12 +248,12 @@ const Home = () => {
             {services.map((service, index) => {
               const IconComponent = service.icon;
               return (
-                <div key={index} className="group text-center p-8 rounded-3xl bg-gradient-to-br from-white to-gray-50 hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-4 border border-gray-100">
+                <div key={index} className="group text-center p-8 rounded-3xl bg-gradient-to-br from-slate-800 to-slate-900 hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-4 border border-emerald-500/20">
                   <div className={`w-24 h-24 bg-gradient-to-br ${service.color} rounded-3xl flex items-center justify-center mx-auto mb-8 group-hover:scale-110 transition-all duration-300 shadow-lg`}>
                     <IconComponent className="text-white" size={40} />
                   </div>
-                  <h3 className="text-2xl font-bold mb-6 text-gray-900 group-hover:text-emerald-600 transition-colors">{service.title}</h3>
-                  <p className="text-gray-600 leading-relaxed text-lg">{service.description}</p>
+                  <h3 className="text-2xl font-bold mb-6 text-white group-hover:text-emerald-400 transition-colors">{service.title}</h3>
+                  <p className="text-slate-300 leading-relaxed text-lg">{service.description}</p>
                 </div>
               );
             })}
@@ -292,7 +292,7 @@ const Home = () => {
       <section className="py-24 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-20">
-            <h2 className="text-5xl font-bold bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent mb-6">What Our Clients Say</h2>
+            <h2 className="text-5xl font-bold text-white mb-6">What Our Clients Say</h2>
             <p className="text-2xl text-slate-300 max-w-4xl mx-auto">
               Don't just take our word for it - hear from our satisfied clients
             </p>
@@ -344,12 +344,12 @@ const Home = () => {
       </section>
 
       {/* Enhanced About Section */}
-      <section className="py-24 bg-white">
+      <section className="py-24 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
             <div>
-              <h2 className="text-5xl font-bold text-gray-900 mb-8">About MetaCodsar</h2>
-              <div className="space-y-8 text-gray-600 leading-relaxed text-lg">
+              <h2 className="text-5xl font-bold text-white mb-8">About MetaCodsar</h2>
+              <div className="space-y-8 text-slate-300 leading-relaxed text-lg">
                 <p>
                   MetaCodsar was founded with a simple yet powerful vision: to create software solutions 
                   that not only meet business requirements but exceed expectations. Our journey began when 

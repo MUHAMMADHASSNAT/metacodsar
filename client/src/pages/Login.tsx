@@ -10,6 +10,7 @@ const Login = () => {
     password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const navigate = useNavigate();
   const { login, isLoading } = useAuth();
 
@@ -22,9 +23,26 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const success = await login(formData.email, formData.password);
-    if (success) {
-      navigate('/admin');
+    setErrorMessage(''); // Clear previous errors
+    
+    // Basic validation
+    if (!formData.email || !formData.password) {
+      setErrorMessage('Please enter both email and password');
+      return;
+    }
+    
+    try {
+      const success = await login(formData.email, formData.password);
+      if (success) {
+        navigate('/admin');
+      } else {
+        // Error message will be shown by the login function via alert
+        // But we can also set a local error message
+        setErrorMessage('Login failed. Please check your credentials and try again.');
+      }
+    } catch (error: any) {
+      console.error('Login error:', error);
+      setErrorMessage(error.message || 'An unexpected error occurred. Please try again.');
     }
   };
 
@@ -44,6 +62,11 @@ const Login = () => {
 
         {/* Login Form */}
         <div className="bg-white rounded-3xl shadow-2xl p-8">
+          {errorMessage && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
+              <p className="text-sm text-red-600">{errorMessage}</p>
+            </div>
+          )}
           <form className="space-y-6" onSubmit={handleSubmit}>
         <div>
               <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">

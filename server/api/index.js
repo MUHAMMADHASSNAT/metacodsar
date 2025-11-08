@@ -64,10 +64,10 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Request timeout middleware (7 seconds for Vercel free tier - leave buffer)
+// Request timeout middleware (9 seconds for Vercel free tier - leave buffer)
 app.use((req, res, next) => {
-  // Set timeout for requests (7 seconds to leave buffer for Vercel's 10s limit)
-  req.setTimeout(7000, () => {
+  // Set timeout for requests (9 seconds to leave buffer for Vercel's 10s limit)
+  req.setTimeout(9000, () => {
     if (!res.headersSent) {
       res.status(504).json({ 
         message: 'Request timeout',
@@ -144,7 +144,7 @@ const connectDB = async () => {
     if (connectionPromise) {
       try {
         const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Connection timeout')), 2000)
+          setTimeout(() => reject(new Error('Connection timeout')), 8000) // Increased to 8 seconds
         );
         return await Promise.race([connectionPromise, timeoutPromise]);
       } catch (err) {
@@ -159,13 +159,13 @@ const connectDB = async () => {
     try {
       const optimizedURI = optimizeMongoURI(MONGODB_URI);
       
-      // Ultra-fast connection settings for Vercel serverless
+      // Optimized connection settings for Vercel serverless (increased timeouts for reliability)
       await mongoose.connect(optimizedURI, {
         useNewUrlParser: true,
         useUnifiedTopology: true,
-        serverSelectionTimeoutMS: 2000, // 2 seconds (aggressive)
+        serverSelectionTimeoutMS: 8000, // 8 seconds (increased for slow connections)
         socketTimeoutMS: 45000,
-        connectTimeoutMS: 2000, // 2 seconds
+        connectTimeoutMS: 8000, // 8 seconds (increased for slow connections)
         maxPoolSize: 1,
         minPoolSize: 0, // Don't keep connection open
         maxIdleTimeMS: 10000, // Close idle connections quickly
@@ -186,9 +186,9 @@ const connectDB = async () => {
   })();
 
   try {
-    // Aggressive timeout - 2.5 seconds max
+    // Increased timeout - 8 seconds max for better reliability
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Connection timeout')), 2500)
+      setTimeout(() => reject(new Error('Connection timeout')), 8000)
     );
     
     return await Promise.race([connectionPromise, timeoutPromise]);
@@ -267,28 +267,31 @@ app.use(async (req, res, next) => {
     return next();
   }
   
-  // Try to connect with aggressive timeout (2.5 seconds max)
+  // Try to connect with increased timeout (8 seconds max)
   try {
     const connectPromise = connectDB();
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Connection timeout')), 2500)
+      setTimeout(() => reject(new Error('Connection timeout')), 8000)
     );
     
     const connected = await Promise.race([connectPromise, timeoutPromise]);
     
     if (!connected) {
       // If connection is in progress, allow request to proceed (optimistic)
+      // This helps with slow connections - let the request try to use DB
       if (mongoose.connection.readyState === 2) {
-        console.log('⏳ Connection in progress, proceeding with request');
+        console.log('⏳ Connection in progress, proceeding with request (optimistic)');
         return next();
       }
       
+      // If not connected and not connecting, return error but with retry hint
+      console.warn('⚠️  MongoDB not connected, returning 503');
       return res.status(503).json({ 
-        message: 'Database connection timeout. Please try again in 2 seconds.',
+        message: 'Database connection timeout. The server is connecting to the database. Please try again in a moment.',
         error: 'MongoDB connection timeout',
-        hint: 'Server is starting up. Please wait a moment and retry.',
+        hint: 'Server is starting up or database is slow. Please wait a moment and retry.',
         retry: true,
-        retryAfter: 2
+        retryAfter: 3
       });
     }
     
@@ -296,16 +299,17 @@ app.use(async (req, res, next) => {
   } catch (error) {
     // If connection is in progress, allow request to proceed (optimistic)
     if (mongoose.connection.readyState === 2) {
-      console.log('⏳ Connection in progress, proceeding with request');
+      console.log('⏳ Connection in progress, proceeding with request (optimistic)');
       return next();
     }
     
+    console.error('❌ MongoDB connection error in middleware:', error.message);
     return res.status(503).json({ 
-      message: 'Database connection failed. Please try again.',
+      message: 'Database connection failed. The server is trying to connect. Please try again in a moment.',
       error: 'MongoDB not connected',
-      hint: 'Check MONGODB_URI in Vercel environment variables',
+      hint: 'Check MONGODB_URI in Vercel environment variables. Server will retry automatically.',
       retry: true,
-      retryAfter: 2
+      retryAfter: 3
     });
   }
 });

@@ -119,20 +119,47 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     try {
       setIsLoading(true);
       
-      // Check server health first (skip in production if no API URL configured)
       const isProduction = import.meta.env.PROD;
-      let isServerRunning = false;
       
-      if (isProduction && !API_BASE_URL) {
-        // Production without API URL: skip health check, try direct login
-        console.warn('⚠️ VITE_API_URL not set in production, skipping health check and trying direct login');
-        isServerRunning = true; // Allow login attempt
-      } else {
-        console.log('Checking server connection...');
-        isServerRunning = await checkServerHealth();
+      // Skip health check in production for faster login
+      // Only do quick health check in development
+      if (!isProduction && API_BASE_URL) {
+        // Quick health check with short timeout (2 seconds max)
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2000);
         
-        if (!isServerRunning && !isProduction) {
-          // Only show error in development
+        try {
+          const healthResponse = await fetch(`${API_BASE_URL}/api/health`, { 
+            method: 'GET',
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+          
+          if (!healthResponse.ok) {
+            const errorMsg = '❌ Server Connection Failed!\n\n' +
+              'Server port 5001 par nahi chal raha.\n\n' +
+              '🔧 Fix karne ke liye:\n\n' +
+              '1️⃣  Root folder mein "start-app.bat" ya "start-app.ps1" run karein\n' +
+              '   Ya manually:\n' +
+              '2️⃣  Terminal khol kar:\n' +
+              '   cd server\n' +
+              '   npm start\n\n' +
+              '3️⃣  Agar port 5001 busy hai:\n' +
+              '   cd server\n' +
+              '   node free-port.js\n' +
+              '   npm start\n\n' +
+              '✅ Server start hone ke baad phir se login karein!';
+            
+            alert(errorMsg);
+            setIsLoading(false);
+            return false;
+          }
+        } catch (healthError: any) {
+          clearTimeout(timeoutId);
+          if (healthError.name === 'AbortError') {
+            // Timeout - server might be slow, but proceed with login
+            console.warn('⚠️ Health check timeout, proceeding with login');
+          } else {
           const errorMsg = '❌ Server Connection Failed!\n\n' +
             'Server port 5001 par nahi chal raha.\n\n' +
             '🔧 Fix karne ke liye:\n\n' +
@@ -150,184 +177,210 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
           alert(errorMsg);
           setIsLoading(false);
           return false;
-        } else if (!isServerRunning && isProduction) {
-          // Production: show warning but allow login attempt
-          console.warn('⚠️ Server health check failed, but proceeding with login attempt');
-          console.warn('If login fails, check VITE_API_URL in Vercel environment variables');
+          }
         }
       }
-      
-      if (isServerRunning) {
-        console.log('✅ Server connection successful!');
-      }
 
-      // Build login URLs to try
-      const loginUrls: string[] = [];
+      // Build login URL - prioritize configured API URL
+      let loginUrl: string;
       
       if (API_BASE_URL) {
-        // Primary: Use configured API URL
-        loginUrls.push(`${API_BASE_URL}/api/auth/login`);
+        // If API_BASE_URL is set, use it
+        loginUrl = `${API_BASE_URL}/api/auth/login`;
       } else if (isProduction) {
-        // Production: Try multiple options
-        const currentOrigin = window.location.origin;
-        
-        // Option 1: Relative path (same domain)
-        loginUrls.push('/api/auth/login');
-        
-        // Option 2: Try common server URL patterns
-        if (currentOrigin.includes('vercel.app')) {
-          const projectName = currentOrigin.replace('https://', '').split('.')[0];
-          const possibleUrls = [
-            `https://${projectName}-api.vercel.app/api/auth/login`,
-            `https://api-${projectName}.vercel.app/api/auth/login`,
-            `https://${projectName.replace('-client', '').replace('-frontend', '').replace('-h3a4', '')}-api.vercel.app/api/auth/login`,
-            `https://${projectName.replace('-client', '').replace('-frontend', '').replace('-h3a4', '')}-server.vercel.app/api/auth/login`,
-          ];
-          loginUrls.push(...possibleUrls);
-        }
+        // Production: Try relative path first
+        loginUrl = '/api/auth/login';
       } else {
-        // Development: Direct connection
-        loginUrls.push('http://localhost:5001/api/auth/login');
+        // Development: Try proxy first, then direct connection
+        // In development, empty API_BASE_URL means use Vite proxy
+        // But if proxy fails, try direct connection
+        loginUrl = '/api/auth/login'; // Try proxy first
       }
       
-      console.log('🔍 Attempting login with URLs:', loginUrls);
+      console.log('🔍 Attempting login:', loginUrl);
+      console.log('🔍 API_BASE_URL:', API_BASE_URL || 'empty (using proxy)');
       
-      // Try login request with retry logic (max 2 retries)
+      // Login with retry logic (3 attempts with increasing timeout)
       let response: Response | null = null;
+      let responseData: any = null;
       let lastError: any = null;
-      const maxRetries = 2;
+      const maxRetries = 3;
+      const timeouts = [15000, 20000, 25000]; // 15s, 20s, 25s for each retry
+      let loginSuccess = false;
       
-      for (const loginUrl of loginUrls) {
-        for (let attempt = 0; attempt <= maxRetries; attempt++) {
-          try {
-            if (attempt > 0) {
-              console.log(`🔄 Retry attempt ${attempt} for: ${loginUrl}`);
-              // Wait before retry (exponential backoff)
-              await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
-            } else {
-              console.log(`📡 Trying: ${loginUrl}`);
-            }
-            
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
-            
-            response = await fetch(loginUrl, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ email, password }),
-              signal: controller.signal,
-              mode: 'cors',
-            });
-            
-            clearTimeout(timeoutId);
-            
-            // If successful, break out of loops
-            if (response.ok) {
-              console.log(`✅ Success with: ${loginUrl}`);
-              break;
-            }
-            
-            // If 503/504 (timeout/connection), retry
-            if (response.status === 503 || response.status === 504) {
-              const retryAfter = attempt < maxRetries ? 2 : 0;
-              if (retryAfter > 0) {
-                console.log(`⏳ Server timeout, will retry in ${retryAfter} seconds...`);
-                continue;
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+          const controller = new AbortController();
+          const timeout = timeouts[attempt];
+          const timeoutId = setTimeout(() => controller.abort(), timeout);
+          
+          console.log(`🔄 Login attempt ${attempt + 1}/${maxRetries} (timeout: ${timeout}ms)`);
+          
+          response = await fetch(loginUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email, password }),
+            signal: controller.signal,
+            mode: 'cors',
+          });
+          
+          clearTimeout(timeoutId);
+          
+          console.log(`📥 Response status: ${response.status}`);
+          
+          // If successful, process response immediately
+          if (response.ok) {
+            try {
+              responseData = await response.json();
+              console.log(`✅ Login successful on attempt ${attempt + 1}`);
+              
+              if (!responseData.token || !responseData.user) {
+                console.error('❌ Invalid response data:', responseData);
+                lastError = new Error('Invalid response data');
+                continue; // Try again
               }
-            }
-            
-            // If not 404, break (might be auth error)
-            if (response.status !== 404) {
-              break;
-            }
-          } catch (fetchError: any) {
-            clearTimeout(timeoutId);
-            console.warn(`❌ Failed: ${loginUrl} (attempt ${attempt + 1})`, fetchError.message);
-            lastError = fetchError;
-            
-            // If timeout and more retries left, continue
-            if (fetchError.name === 'AbortError' && attempt < maxRetries) {
-              console.log(`⏳ Request timeout, retrying...`);
+              
+              // Store token and user data
+              setToken(responseData.token);
+              setUser(responseData.user);
+              localStorage.setItem('token', responseData.token);
+              localStorage.setItem('user', JSON.stringify(responseData.user));
+              console.log('✅ User data stored successfully');
+              loginSuccess = true;
+              break; // Success, exit retry loop
+            } catch (parseError) {
+              console.error('❌ Error parsing successful response:', parseError);
+              lastError = parseError;
+              if (attempt < maxRetries - 1) {
+                const waitTime = (attempt + 1) * 1000;
+                await new Promise(resolve => setTimeout(resolve, waitTime));
+              }
               continue;
             }
+          } else {
+            // Handle error responses
+            try {
+              const errorData = await response.clone().json();
+              console.log('📄 Error response:', errorData);
+              lastError = new Error(errorData.message || 'Login failed');
+              
+              // If it's a credential error, don't retry
+              if (response.status === 401) {
+                alert(errorData.message || 'Invalid credentials. Please check your email and password.');
+                setIsLoading(false);
+                return false;
+              }
+            } catch (e) {
+              lastError = new Error(`Login failed with status ${response.status}`);
+            }
             
-            // If last attempt, break to next URL
-            if (attempt === maxRetries) {
-              break;
+            // If not last attempt, wait before retrying
+            if (attempt < maxRetries - 1) {
+              const waitTime = (attempt + 1) * 1000; // 1s, 2s, 3s
+              console.log(`⏳ Waiting ${waitTime}ms before retry...`);
+              await new Promise(resolve => setTimeout(resolve, waitTime));
+            }
+          }
+        } catch (fetchError: any) {
+          console.warn(`❌ Login request attempt ${attempt + 1} failed:`, fetchError.message);
+          lastError = fetchError;
+          
+          // If it's an abort error (timeout), wait before retrying
+          if (fetchError.name === 'AbortError' && attempt < maxRetries - 1) {
+            const waitTime = (attempt + 1) * 1000; // 1s, 2s, 3s
+            console.log(`⏱️ Timeout occurred. Waiting ${waitTime}ms before retry...`);
+            await new Promise(resolve => setTimeout(resolve, waitTime));
+            continue;
+          }
+          
+          // In development, try direct connection if proxy fails (only on first attempt)
+          if (attempt === 0 && !isProduction && loginUrl === '/api/auth/login') {
+            console.log('🔄 Proxy failed, trying direct connection to localhost:5001...');
+            try {
+              const directController = new AbortController();
+              const directTimeout = setTimeout(() => directController.abort(), 15000);
+              
+              response = await fetch('http://localhost:5001/api/auth/login', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email, password }),
+                signal: directController.signal,
+                mode: 'cors',
+              });
+              
+              clearTimeout(directTimeout);
+              
+              if (response.ok) {
+                try {
+                  responseData = await response.json();
+                  if (responseData.token && responseData.user) {
+                    setToken(responseData.token);
+                    setUser(responseData.user);
+                    localStorage.setItem('token', responseData.token);
+                    localStorage.setItem('user', JSON.stringify(responseData.user));
+                    console.log('✅ Direct connection successful');
+                    loginSuccess = true;
+                    break;
+                  }
+                } catch (parseError) {
+                  console.error('❌ Error parsing direct connection response:', parseError);
+                }
+              } else {
+                // If direct connection also fails, continue with retry loop
+                console.warn('⚠️ Direct connection returned status:', response.status);
+              }
+            } catch (directError: any) {
+              console.error('❌ Direct connection failed:', directError.message);
+              // If direct connection fails, it means server is not running
+              if (directError.name === 'TypeError' && directError.message.includes('fetch')) {
+                lastError = new Error('Server is not running. Please start the server on port 5001.');
+              }
             }
           }
         }
-        
-        // If we got a successful response, break out of URL loop
-        if (response && response.ok) {
-          break;
-        }
       }
       
-      // If all URLs failed
-      if (!response || !response.ok) {
-        
-        // If production and no API_BASE_URL, show helpful error
-        if (isProduction && !API_BASE_URL) {
-          const errorMsg = '❌ Server URL not configured!\n\n' +
-            'VITE_API_URL environment variable missing in Vercel.\n\n' +
-            '🔧 Fix karne ke liye:\n\n' +
-            '1️⃣  Vercel Dashboard → Client Project → Settings → Environment Variables\n' +
-            '2️⃣  Add New Variable:\n' +
-            '   Name: VITE_API_URL\n' +
-            '   Value: https://your-server-project.vercel.app\n' +
-            '   (Replace with your actual server URL)\n' +
-            '3️⃣  Redeploy karein\n\n' +
-            '✅ Config fix ke baad phir se login karein!';
-          
-          alert(errorMsg);
-          setIsLoading(false);
-          return false;
-        }
-        
-        // If API_BASE_URL fails and we're in dev, try direct connection
-        if (import.meta.env.DEV) {
-          console.log('Proxy failed, trying direct connection...');
-          const directController = new AbortController();
-          const directTimeout = setTimeout(() => directController.abort(), 10000);
-          
-          try {
-            response = await fetch('http://localhost:5001/api/auth/login', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ email, password }),
-              signal: directController.signal,
-              mode: 'cors',
-            });
-            
-            clearTimeout(directTimeout);
-          } catch (devError) {
-            clearTimeout(directTimeout);
-            throw lastError || devError;
-          }
-        } else {
-          throw lastError || new Error('All login attempts failed');
-        }
-      }
-      
-      clearTimeout(timeoutId);
-
-      if (response.ok) {
-        const data = await response.json();
-        setToken(data.token);
-        setUser(data.user);
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
+      // If login was successful, return true
+      if (loginSuccess && responseData) {
+        setIsLoading(false);
         return true;
-      } else {
-        const error = await response.json().catch(() => ({ message: 'Login failed. Invalid credentials.' }));
-        alert(error.message || 'Login failed. Please check your credentials.');
+      }
+      
+      // If login failed after all retries
+      console.error('❌ Login failed after all retries');
+      console.error('Last error:', lastError);
+      console.error('Response status:', response?.status);
+      
+      // Handle specific error cases
+      if (response && response.status === 401) {
+        alert('Invalid credentials. Please check your email and password.');
+        setIsLoading(false);
         return false;
       }
+      
+      // If production and no API_BASE_URL, show helpful error
+      if (isProduction && !API_BASE_URL) {
+        const errorMsg = '❌ Server URL not configured!\n\n' +
+          'VITE_API_URL environment variable missing in Vercel.\n\n' +
+          '🔧 Fix karne ke liye:\n\n' +
+          '1️⃣  Vercel Dashboard → Client Project → Settings → Environment Variables\n' +
+          '2️⃣  Add New Variable:\n' +
+          '   Name: VITE_API_URL\n' +
+          '   Value: https://metacodsar-2vf1.vercel.app\n' +
+          '3️⃣  Redeploy karein\n\n' +
+          '✅ Config fix ke baad phir se login karein!';
+        
+        alert(errorMsg);
+        setIsLoading(false);
+        return false;
+      }
+      
+      // Throw error to be caught by outer catch block
+      throw lastError || new Error('Login failed after all retry attempts');
     } catch (error: any) {
       console.error('Login error:', error);
       
@@ -336,34 +389,44 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
       
       if (error.name === 'AbortError' || error.message?.includes('timeout')) {
         errorMsg += '⏱️ Server Response Timeout!\n\n';
+        errorMsg += 'The server took too long to respond. This might be due to:\n';
+        errorMsg += '• Server is starting up (cold start)\n';
+        errorMsg += '• Slow database connection\n';
+        errorMsg += '• Network latency\n\n';
         
         if (isProduction) {
-          errorMsg += 'Server slow hai ya cold start ho raha hai.\n\n';
-          errorMsg += '🔧 Production Solution:\n\n';
-          errorMsg += '1️⃣  Vercel Dashboard → Server Project → Logs check karein\n';
-          errorMsg += '2️⃣  MongoDB connection verify karein:\n';
-          errorMsg += '   - MONGODB_URI set hai?\n';
-          errorMsg += '   - Network Access allow hai?\n\n';
-          errorMsg += '3️⃣  Wait 2-3 seconds aur phir se try karein\n';
-          errorMsg += '   (Cold start ke baad automatically retry ho jayega)\n\n';
-          errorMsg += '4️⃣  Server health check:\n';
+          errorMsg += '🔧 Solutions:\n\n';
+          errorMsg += '1️⃣  Please wait 5-10 seconds and try again\n';
+          errorMsg += '    (The system will automatically retry)\n\n';
+          errorMsg += '2️⃣  Check server status:\n';
           errorMsg += `   ${API_BASE_URL || 'https://metacodsar-2vf1.vercel.app'}/api/health\n\n`;
-          errorMsg += '💡 Tip: First request slow hota hai (cold start).\n';
-          errorMsg += '    Subsequent requests fast honge!';
+          errorMsg += '3️⃣  If problem persists, check:\n';
+          errorMsg += '   • Vercel Dashboard → Server Logs\n';
+          errorMsg += '   • MongoDB connection status\n';
+          errorMsg += '   • Network connectivity\n\n';
+          errorMsg += '💡 Tip: First request may be slow (cold start).\n';
+          errorMsg += '    Subsequent requests will be faster!';
         } else {
-          errorMsg += 'Server slow hai ya nahi chal raha.\n\n';
-          errorMsg += '🔧 Development Solution:\n\n';
+          errorMsg += '🔧 Development Solutions:\n\n';
           errorMsg += '1️⃣  Server check karein:\n';
-          errorMsg += '   Browser mein open karein: http://localhost:5001/api/health\n\n';
+          errorMsg += '   Browser mein open karein: http://localhost:5001/api/health\n';
+          errorMsg += '   Agar "Cannot GET" ya error aaye, to server nahi chal raha\n\n';
           errorMsg += '2️⃣  Server start karein:\n';
+          errorMsg += '   Option A: Root folder mein "start-app.bat" ya "start-app.ps1" run karein\n';
+          errorMsg += '   Option B: Manually terminal mein:\n';
           errorMsg += '   cd server\n';
           errorMsg += '   npm start\n\n';
-          errorMsg += '3️⃣  Port issue ho to:\n';
+          errorMsg += '3️⃣  Agar port 5001 busy hai:\n';
           errorMsg += '   cd server\n';
-          errorMsg += '   node free-port.js\n\n';
-          errorMsg += '✅ Server start hone ke baad phir se try karein!';
+          errorMsg += '   node free-port.js\n';
+          errorMsg += '   npm start\n\n';
+          errorMsg += '4️⃣  Server start hone ke baad:\n';
+          errorMsg += '   - Wait 5-10 seconds for MongoDB connection\n';
+          errorMsg += '   - Check http://localhost:5001/api/health\n';
+          errorMsg += '   - Phir login try karein\n\n';
+          errorMsg += '✅ Server running hone ke baad automatically retry hoga!';
         }
-      } else if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
+      } else if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError') || error.message?.includes('not running')) {
         errorMsg += '🌐 Network Connection Error!\n\n';
         
         if (isProduction) {
@@ -379,13 +442,26 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
           errorMsg += '   Value: https://metacodsar-h3a4.vercel.app\n\n';
           errorMsg += '4️⃣  Redeploy dono projects after fixing variables';
         } else {
-          errorMsg += 'Server se connect nahi ho pa raha.\n\n';
-          errorMsg += '🔧 Development Solution:\n\n';
+          errorMsg += '❌ Server Connection Failed!\n\n';
+          errorMsg += 'Server port 5001 par nahi chal raha.\n\n';
+          errorMsg += '🔧 Fix karne ke liye:\n\n';
           errorMsg += '1️⃣  Server check karein:\n';
-          errorMsg += '   Browser mein open karein: http://localhost:5001/api/health\n\n';
-          errorMsg += '2️⃣  Server start karein:\n';
-          errorMsg += '   cd server && npm start\n\n';
-          errorMsg += '✅ Server start hone ke baad phir se try karein!';
+          errorMsg += '   Browser mein open karein: http://localhost:5001/api/health\n';
+          errorMsg += '   Agar "Cannot GET" ya connection error aaye, to server nahi chal raha\n\n';
+          errorMsg += '2️⃣  Server start karein (choose one):\n';
+          errorMsg += '   Option A: Root folder mein "start-app.bat" ya "start-app.ps1" run karein\n';
+          errorMsg += '   Option B: Terminal mein manually:\n';
+          errorMsg += '   cd server\n';
+          errorMsg += '   npm start\n\n';
+          errorMsg += '3️⃣  Agar port 5001 busy hai:\n';
+          errorMsg += '   cd server\n';
+          errorMsg += '   node free-port.js\n';
+          errorMsg += '   npm start\n\n';
+          errorMsg += '4️⃣  Server start hone ke baad:\n';
+          errorMsg += '   - Wait 5-10 seconds for MongoDB connection\n';
+          errorMsg += '   - Check http://localhost:5001/api/health (should show status: OK)\n';
+          errorMsg += '   - Phir login try karein\n\n';
+          errorMsg += '✅ Server running hone ke baad automatically retry hoga!';
         }
       } else {
         errorMsg += '❌ Connection Error!\n\n';
@@ -402,16 +478,26 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
           errorMsg += '   - VITE_API_URL (Client Project)\n\n';
           errorMsg += '4️⃣  Retry karein (automatic retry active hai)';
         } else {
+          errorMsg += '❌ Server Connection Failed!\n\n';
+          errorMsg += 'Server se connect nahi ho pa raha.\n\n';
           errorMsg += '🔧 Development Solution:\n\n';
           errorMsg += '1️⃣  Server check karein:\n';
-          errorMsg += '   Browser mein open karein: http://localhost:5001/api/health\n\n';
+          errorMsg += '   Browser mein open karein: http://localhost:5001/api/health\n';
+          errorMsg += '   Agar "Cannot GET" ya connection error aaye, to server nahi chal raha\n\n';
           errorMsg += '2️⃣  Server start karein:\n';
+          errorMsg += '   Option A: Root folder mein "start-app.bat" ya "start-app.ps1" run karein\n';
+          errorMsg += '   Option B: Terminal mein manually:\n';
           errorMsg += '   cd server\n';
           errorMsg += '   npm start\n\n';
-          errorMsg += '3️⃣  Port issue ho to:\n';
+          errorMsg += '3️⃣  Agar port 5001 busy hai:\n';
           errorMsg += '   cd server\n';
-          errorMsg += '   node free-port.js\n\n';
-          errorMsg += '✅ Server start hone ke baad phir se try karein!';
+          errorMsg += '   node free-port.js\n';
+          errorMsg += '   npm start\n\n';
+          errorMsg += '4️⃣  Server start hone ke baad:\n';
+          errorMsg += '   - Wait 5-10 seconds for MongoDB connection\n';
+          errorMsg += '   - Check http://localhost:5001/api/health (should show status: OK)\n';
+          errorMsg += '   - Phir login try karein\n\n';
+          errorMsg += '✅ Server running hone ke baad automatically retry hoga!';
         }
       }
       

@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "setup": "node setup-and-run.js",
+    "update-creds": "node update-credentials.js"
   },
   "dependencies": {
     "express": "^4.18.2",

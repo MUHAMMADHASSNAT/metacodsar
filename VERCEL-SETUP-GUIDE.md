@@ -9,9 +9,9 @@
    Add these variables:
    
    ```
-   MONGODB_URI = mongodb+srv://username:password@cluster.mongodb.net/database
-   JWT_SECRET = your-secret-key-here
-   FRONTEND_URL = https://your-client-project.vercel.app
+   MONGODB_URI = mongodb+srv://metacodsar:metacodsars@cluster0.7r3ulvb.mongodb.net/metacodsar?appName=Cluster0
+   JWT_SECRET = metacodsar-secret-key-2024
+   FRONTEND_URL = https://metacodsar-h3a4.vercel.app
    NODE_ENV = production
    ```
 
@@ -150,8 +150,8 @@ To server theek kaam kar raha hai!
 
 **Server Project (Backend - https://metacodsar-2vf1.vercel.app):**
 ```
-MONGODB_URI = mongodb+srv://metacodsar:password@cluster.mongodb.net/metacodsar
-JWT_SECRET = my-secret-key-12345
+MONGODB_URI = mongodb+srv://metacodsar:metacodsars@cluster0.7r3ulvb.mongodb.net/metacodsar?appName=Cluster0
+JWT_SECRET = metacodsar-secret-key-2024
 FRONTEND_URL = https://metacodsar-h3a4.vercel.app
 NODE_ENV = production
 ```

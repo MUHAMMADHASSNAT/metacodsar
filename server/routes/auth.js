@@ -35,20 +35,34 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: 'Email and password are required' });
     }
 
-    // Find user by email (with aggressive timeout)
+    // Find user by email (with increased timeout for slow connections)
     let user;
     try {
-      user = await Promise.race([
-        User.findOne({ email }),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Query timeout')), 3000)
-        )
-      ]);
+      // Use a longer timeout and better error handling
+      const queryPromise = User.findOne({ email }).maxTimeMS(15000); // 15 seconds max query time
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Query timeout')), 15000) // 15 seconds
+      );
+      
+      user = await Promise.race([queryPromise, timeoutPromise]);
     } catch (queryError) {
-      console.error('User query timeout:', queryError);
-      return res.status(503).json({ 
-        message: 'Database query timeout. Please try again.',
-        error: 'Query timeout',
+      console.error('❌ User query error:', queryError.message);
+      
+      // Check if it's a timeout or connection error
+      if (queryError.message.includes('timeout') || queryError.message.includes('Connection')) {
+        return res.status(503).json({ 
+          message: 'Database query timeout. The server is processing your request. Please try again in a moment.',
+          error: 'Query timeout',
+          retry: true,
+          retryAfter: 3
+        });
+      }
+      
+      // For other errors, return 500
+      console.error('❌ Database query error:', queryError);
+      return res.status(500).json({ 
+        message: 'Database error occurred. Please try again.',
+        error: 'Database query failed',
         retry: true,
         retryAfter: 2
       });
@@ -57,9 +71,9 @@ router.post('/login', async (req, res) => {
     // Auto-create admin user if login attempt with admin credentials and user doesn't exist
     if (!user && email === 'admin@metacodsar.com' && password === 'password') {
       try {
-        // Create admin user on the fly
+        // Create admin user on the fly with timeout protection
         const hashedPassword = await bcrypt.hash('password', 10);
-        user = new User({
+        const newAdmin = new User({
           name: 'Admin User',
           email: 'admin@metacodsar.com',
           password: hashedPassword,
@@ -68,12 +82,25 @@ router.post('/login', async (req, res) => {
           role: 'admin',
           isActive: true
         });
-        await user.save();
+        
+        // Save with timeout protection
+        const savePromise = newAdmin.save();
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Save timeout')), 10000)
+        );
+        
+        await Promise.race([savePromise, timeoutPromise]);
+        user = newAdmin;
         console.log('✅ Admin user created on login attempt');
       } catch (createError) {
-        console.error('Error creating admin user:', createError);
-        // If creation fails, try to find user again
-        user = await User.findOne({ email: 'admin@metacodsar.com' });
+        console.error('⚠️  Error creating admin user:', createError.message);
+        // If creation fails, try to find user again (might have been created by another request)
+        try {
+          user = await User.findOne({ email: 'admin@metacodsar.com' }).maxTimeMS(5000);
+        } catch (findError) {
+          console.error('❌ Error finding admin user after creation failure:', findError.message);
+          // Continue - will return invalid credentials error
+        }
       }
     }
     
@@ -86,8 +113,24 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'Account is deactivated' });
     }
 
-    // Check password
-    const isMatch = await bcrypt.compare(password, user.password);
+    // Check password with timeout protection
+    let isMatch;
+    try {
+      const comparePromise = bcrypt.compare(password, user.password);
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Password comparison timeout')), 5000)
+      );
+      isMatch = await Promise.race([comparePromise, timeoutPromise]);
+    } catch (compareError) {
+      console.error('❌ Password comparison error:', compareError.message);
+      return res.status(500).json({ 
+        message: 'Server error during authentication. Please try again.',
+        error: 'Authentication timeout',
+        retry: true,
+        retryAfter: 2
+      });
+    }
+    
     if (!isMatch) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
