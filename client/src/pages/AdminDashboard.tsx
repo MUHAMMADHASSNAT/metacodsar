@@ -663,32 +663,34 @@ const AdminDashboard = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50 to-green-50">
       {/* Header */}
       <div className="bg-gradient-to-r from-emerald-600 via-green-600 to-lime-600 shadow-xl border-b border-emerald-200">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 py-4 sm:py-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-white drop-shadow-lg">Admin Dashboard</h1>
-              <p className="text-emerald-100 font-medium">Welcome, {user?.name || 'Admin'}</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-white drop-shadow-lg">Admin Dashboard</h1>
+              <p className="text-sm sm:text-base text-emerald-100 font-medium">Welcome, {user?.name || 'Admin'}</p>
             </div>
-            <div className="flex items-center space-x-3">
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
               <button
                 onClick={() => setShowUsernameChange(true)}
-                className="flex items-center space-x-2 px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-xl hover:bg-white/30 border border-white/30 transition-all duration-300 shadow-lg"
+                className="flex items-center space-x-1 sm:space-x-2 px-3 sm:px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-xl hover:bg-white/30 border border-white/30 transition-all duration-300 shadow-lg text-sm sm:text-base"
               >
-                <User size={18} />
-                <span>Change Username</span>
+                <User size={16} />
+                <span className="hidden sm:inline">Change Username</span>
+                <span className="sm:hidden">Username</span>
               </button>
               <button
                 onClick={() => setShowPasswordChange(true)}
-                className="flex items-center space-x-2 px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-xl hover:bg-white/30 border border-white/30 transition-all duration-300 shadow-lg"
+                className="flex items-center space-x-1 sm:space-x-2 px-3 sm:px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-xl hover:bg-white/30 border border-white/30 transition-all duration-300 shadow-lg text-sm sm:text-base"
               >
-                <Settings size={18} />
-                <span>Change Password</span>
+                <Settings size={16} />
+                <span className="hidden sm:inline">Change Password</span>
+                <span className="sm:hidden">Password</span>
               </button>
               <button
                 onClick={logout}
-                className="flex items-center space-x-2 px-4 py-2 bg-red-500/90 text-white rounded-xl hover:bg-red-600 border border-red-400 transition-all duration-300 shadow-lg"
+                className="flex items-center space-x-1 sm:space-x-2 px-3 sm:px-4 py-2 bg-red-500/90 text-white rounded-xl hover:bg-red-600 border border-red-400 transition-all duration-300 shadow-lg text-sm sm:text-base"
               >
-                <LogOut size={20} />
+                <LogOut size={18} />
                 <span>Logout</span>
               </button>
             </div>
@@ -698,51 +700,55 @@ const AdminDashboard = () => {
 
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Tabs */}
-        <div className="bg-white rounded-2xl shadow-lg mb-8 overflow-hidden">
-          <div className="flex border-b border-gray-200">
+        <div className="bg-white rounded-2xl shadow-lg mb-6 sm:mb-8 overflow-hidden">
+          <div className="flex flex-wrap border-b border-gray-200">
             <button
               onClick={() => setActiveTab('overview')}
-              className={`flex-1 px-6 py-4 text-center font-semibold transition-all ${
+              className={`flex-1 min-w-[50%] sm:min-w-0 px-3 sm:px-6 py-3 sm:py-4 text-center font-semibold transition-all text-sm sm:text-base ${
                 activeTab === 'overview'
                   ? 'bg-gradient-to-r from-emerald-600 to-green-600 text-white shadow-lg'
                   : 'text-gray-700 hover:bg-gradient-to-r hover:from-emerald-50 hover:to-green-50'
               }`}
             >
-              <BarChart3 className="inline-block mr-2" size={20} />
-              Overview
+              <BarChart3 className="inline-block mr-1 sm:mr-2" size={18} />
+              <span className="hidden sm:inline">Overview</span>
+              <span className="sm:hidden">Overview</span>
             </button>
             <button
               onClick={() => setActiveTab('team')}
-              className={`flex-1 px-6 py-4 text-center font-semibold transition-all ${
+              className={`flex-1 min-w-[50%] sm:min-w-0 px-3 sm:px-6 py-3 sm:py-4 text-center font-semibold transition-all text-sm sm:text-base ${
                 activeTab === 'team'
                   ? 'bg-gradient-to-r from-emerald-600 to-green-600 text-white shadow-lg'
                   : 'text-gray-700 hover:bg-gradient-to-r hover:from-emerald-50 hover:to-green-50'
               }`}
             >
-              <Users className="inline-block mr-2" size={20} />
-              Team Members ({teamMembers.length})
+              <Users className="inline-block mr-1 sm:mr-2" size={18} />
+              <span className="hidden sm:inline">Team ({teamMembers.length})</span>
+              <span className="sm:hidden">Team</span>
             </button>
             <button
               onClick={() => setActiveTab('projects')}
-              className={`flex-1 px-6 py-4 text-center font-semibold transition-all ${
+              className={`flex-1 min-w-[50%] sm:min-w-0 px-3 sm:px-6 py-3 sm:py-4 text-center font-semibold transition-all text-sm sm:text-base ${
                 activeTab === 'projects'
                   ? 'bg-gradient-to-r from-emerald-600 to-green-600 text-white shadow-lg'
                   : 'text-gray-700 hover:bg-gradient-to-r hover:from-emerald-50 hover:to-green-50'
               }`}
             >
-              <FolderPlus className="inline-block mr-2" size={20} />
-              Projects ({projects.length})
+              <FolderPlus className="inline-block mr-1 sm:mr-2" size={18} />
+              <span className="hidden sm:inline">Projects ({projects.length})</span>
+              <span className="sm:hidden">Projects</span>
             </button>
             <button
               onClick={() => setActiveTab('contact')}
-              className={`flex-1 px-6 py-4 text-center font-semibold transition-all ${
+              className={`flex-1 min-w-[50%] sm:min-w-0 px-3 sm:px-6 py-3 sm:py-4 text-center font-semibold transition-all text-sm sm:text-base ${
                 activeTab === 'contact'
                   ? 'bg-gradient-to-r from-emerald-600 to-green-600 text-white shadow-lg'
                   : 'text-gray-700 hover:bg-gradient-to-r hover:from-emerald-50 hover:to-green-50'
               }`}
             >
-              <Mail className="inline-block mr-2" size={20} />
-              Contact Info
+              <Mail className="inline-block mr-1 sm:mr-2" size={18} />
+              <span className="hidden sm:inline">Contact</span>
+              <span className="sm:hidden">Contact</span>
             </button>
           </div>
         </div>

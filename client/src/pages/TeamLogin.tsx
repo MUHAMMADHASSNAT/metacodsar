@@ -33,17 +33,17 @@ const TeamLogin = () => {
       <div className="max-w-md w-full space-y-8">
         {/* Logo and Header */}
         <div className="text-center">
-          <div className="mx-auto w-24 h-24 bg-white rounded-full flex items-center justify-center shadow-2xl border-4 border-green-600 mb-6">
-            <MetaCodSarLogo size={64} />
+          <div className="mx-auto w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 bg-white rounded-full flex items-center justify-center shadow-2xl border-4 border-green-600 mb-4 sm:mb-6">
+            <MetaCodSarLogo size={40} />
           </div>
-          <h1 className="text-4xl font-bold text-green-800 mb-2">METACODSAR</h1>
-          <p className="text-lg text-green-600 italic mb-8">CODE FROM THE HEIGHTS</p>
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Team Login</h2>
-          <p className="text-gray-600">Sign in to access your team dashboard</p>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-green-800 mb-2">METACODSAR</h1>
+          <p className="text-base sm:text-lg text-green-600 italic mb-6 sm:mb-8">CODE FROM THE HEIGHTS</p>
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Team Login</h2>
+          <p className="text-sm sm:text-base text-gray-600">Sign in to access your team dashboard</p>
         </div>
 
         {/* Login Form */}
-        <div className="bg-white rounded-3xl shadow-2xl p-8">
+        <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl p-4 sm:p-6 md:p-8">
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
               <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">
@@ -123,7 +123,7 @@ const TeamLogin = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-green-600 text-white py-3 px-4 rounded-xl font-semibold text-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105 flex items-center justify-center shadow-lg"
+              className="w-full bg-green-600 text-white py-2.5 sm:py-3 px-4 rounded-xl font-semibold text-base sm:text-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105 flex items-center justify-center shadow-lg"
             >
               {isLoading ? (
                 <>

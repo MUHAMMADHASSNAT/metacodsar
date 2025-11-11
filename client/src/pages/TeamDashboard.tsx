@@ -51,7 +51,8 @@ const TeamDashboard = () => {
     technologies: '',
     githubUrl: '',
     category: 'web',
-    image: null as File | null
+    image: null as File | null,
+    imagePreview: null as string | null
   });
 
   const [userProjects, setUserProjects] = useState<Project[]>([]);
@@ -236,7 +237,8 @@ const TeamDashboard = () => {
           technologies: '',
           githubUrl: '',
           category: 'web',
-          image: null
+          image: null,
+          imagePreview: null
         });
         setShowProjectForm(false);
       }
@@ -270,39 +272,41 @@ const TeamDashboard = () => {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-green-50">
       {/* Header */}
       <div className="bg-white shadow-lg border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 py-4 sm:py-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Team Dashboard</h1>
-              <p className="text-gray-600">Welcome, {user?.name}</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Team Dashboard</h1>
+              <p className="text-sm sm:text-base text-gray-600">Welcome, {user?.name}</p>
             </div>
-            <div className="flex items-center space-x-3">
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
               <button
                 onClick={() => setShowUsernameChange(true)}
-                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-300"
+                className="flex items-center space-x-1 sm:space-x-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-300 text-sm sm:text-base"
               >
-                <User size={18} />
-                <span>Change Username</span>
+                <User size={16} />
+                <span className="hidden sm:inline">Change Username</span>
+                <span className="sm:hidden">Username</span>
               </button>
               <button
                 onClick={() => setShowPasswordChange(true)}
-                className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-all duration-300"
+                className="flex items-center space-x-1 sm:space-x-2 px-3 sm:px-4 py-2 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-all duration-300 text-sm sm:text-base"
               >
-                <Lock size={18} />
-                <span>Change Password</span>
+                <Lock size={16} />
+                <span className="hidden sm:inline">Change Password</span>
+                <span className="sm:hidden">Password</span>
               </button>
               <button
                 onClick={() => setShowProfileForm(true)}
-                className="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all duration-300"
+                className="flex items-center space-x-1 sm:space-x-2 px-3 sm:px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all duration-300 text-sm sm:text-base"
               >
-                <Settings size={20} />
+                <Settings size={18} />
                 <span>Profile</span>
               </button>
               <button
                 onClick={logout}
-                className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all duration-300"
+                className="flex items-center space-x-1 sm:space-x-2 px-3 sm:px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all duration-300 text-sm sm:text-base"
               >
-                <LogOut size={20} />
+                <LogOut size={18} />
                 <span>Logout</span>
               </button>
             </div>
@@ -363,30 +367,32 @@ const TeamDashboard = () => {
         </div>
 
         {/* Profile Card */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
-          <div className="flex items-center space-x-6">
-            <div className="w-20 h-20 bg-green-600 rounded-full flex items-center justify-center">
-              <span className="text-white font-bold text-2xl">
+        <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start space-y-4 sm:space-y-0 sm:space-x-6">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-green-600 rounded-full flex items-center justify-center">
+              <span className="text-white font-bold text-xl sm:text-2xl">
                 {user?.name?.split(' ').map(n => n[0]).join('')}
               </span>
             </div>
-            <div className="flex-1">
-              <h2 className="text-2xl font-bold text-gray-900">{user?.name}</h2>
-              <p className="text-green-600 font-semibold">{user?.designation}</p>
-              <div className="flex items-center space-x-4 mt-2 text-sm text-gray-600">
+            <div className="flex-1 text-center sm:text-left w-full sm:w-auto">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{user?.name}</h2>
+              <p className="text-green-600 font-semibold text-sm sm:text-base">{user?.designation}</p>
+              <div className="flex flex-col sm:flex-row items-center sm:items-start space-y-2 sm:space-y-0 sm:space-x-4 mt-2 text-xs sm:text-sm text-gray-600">
                 <div className="flex items-center space-x-1">
-                  <Mail size={16} />
-                  <span>{user?.email}</span>
+                  <Mail size={14} />
+                  <span className="break-all">{user?.email}</span>
                 </div>
+                {user?.phone && (
                 <div className="flex items-center space-x-1">
-                  <Phone size={16} />
+                    <Phone size={14} />
                   <span>{user?.phone}</span>
                 </div>
+                )}
               </div>
             </div>
             <button
               onClick={() => setShowProfileForm(true)}
-              className="px-6 py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-all duration-300 transform hover:scale-105"
+              className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-all duration-300 transform hover:scale-105 text-sm sm:text-base"
             >
               Edit Profile
             </button>
@@ -395,14 +401,14 @@ const TeamDashboard = () => {
 
         {/* Projects Section */}
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-gray-900">My Projects</h2>
+          <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">My Projects</h2>
               <button
                 onClick={() => setShowProjectForm(true)}
-                className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all duration-300 transform hover:scale-105"
+                className="flex items-center space-x-2 px-3 sm:px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all duration-300 transform hover:scale-105 text-sm sm:text-base w-full sm:w-auto justify-center"
               >
-                <Plus size={20} />
+                <Plus size={18} />
                 <span>Add Project</span>
               </button>
             </div>
@@ -665,10 +671,33 @@ const TeamDashboard = () => {
                 <input
                   type="file"
                   accept="image/*"
-                  onChange={(e) => setProjectData({ ...projectData, image: e.target.files?.[0] || null })}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setProjectData({ ...projectData, image: file });
+                      // Create preview
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        setProjectData(prev => ({ ...prev, imagePreview: reader.result as string }));
+                      };
+                      reader.readAsDataURL(file);
+                    } else {
+                      setProjectData({ ...projectData, image: null, imagePreview: null });
+                    }
+                  }}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
                 <p className="text-xs text-gray-500 mt-1">Upload project image</p>
+                {projectData.image && projectData.imagePreview && (
+                  <div className="mt-4">
+                    <p className="text-xs font-semibold text-gray-700 mb-2">Preview:</p>
+                    <img 
+                      src={projectData.imagePreview} 
+                      alt="Preview" 
+                      className="w-full h-48 object-cover rounded-lg border-2 border-gray-300"
+                    />
+                  </div>
+                )}
               </div>
               
               <div className="flex space-x-3 pt-4">
