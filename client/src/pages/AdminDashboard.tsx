@@ -94,6 +94,7 @@ const AdminDashboard = () => {
     technologies: '',
     imageUrl: '',
     image: null as File | null,
+    imagePreview: null as string | null,
     githubUrl: '',
     category: ''
   });
@@ -483,6 +484,7 @@ const AdminDashboard = () => {
       technologies: project.technologies.join(', '),
       imageUrl: project.imageUrl || '',
       image: null,
+      imagePreview: project.imageUrl ? getImageUrl(project.imageUrl) : null,
       githubUrl: project.githubUrl || '',
       category: project.category || 'web'
     });
@@ -496,6 +498,7 @@ const AdminDashboard = () => {
       technologies: '',
       imageUrl: '',
       image: null,
+      imagePreview: null,
       githubUrl: '',
       category: 'web'
     });
@@ -1101,7 +1104,7 @@ const AdminDashboard = () => {
                     {project.imageUrl && (
                       <div className="mb-4">
                         <img 
-                          src={project.imageUrl} 
+                          src={getImageUrl(project.imageUrl)} 
                           alt={project.title}
                           className="w-full h-48 object-cover rounded-lg"
                           onError={(e) => {
@@ -1402,21 +1405,59 @@ const AdminDashboard = () => {
                   <input
                     type="file"
                     accept="image/*"
-                    onChange={(e) => setProjectFormData({ ...projectFormData, image: e.target.files?.[0] || null })}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setProjectFormData({ ...projectFormData, image: file, imageUrl: '' });
+                        // Create preview
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          setProjectFormData(prev => ({ ...prev, imagePreview: reader.result as string }));
+                        };
+                        reader.readAsDataURL(file);
+                      } else {
+                        setProjectFormData({ ...projectFormData, image: null });
+                      }
+                    }}
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   <p className="text-xs text-gray-500 mt-1">Upload project image</p>
+                  {projectFormData.image && (
+                    <div className="mt-4">
+                      <p className="text-xs font-semibold text-gray-700 mb-2">Preview:</p>
+                      <img 
+                        src={projectFormData.imagePreview || URL.createObjectURL(projectFormData.image)} 
+                        alt="Preview" 
+                        className="w-full h-48 object-cover rounded-lg border-2 border-gray-300"
+                      />
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Or Image URL</label>
                   <input
                     type="url"
                     value={projectFormData.imageUrl}
-                    onChange={(e) => setProjectFormData({ ...projectFormData, imageUrl: e.target.value })}
+                    onChange={(e) => {
+                      setProjectFormData({ ...projectFormData, imageUrl: e.target.value, image: null });
+                    }}
                     placeholder="https://example.com/image.jpg"
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   <p className="text-xs text-gray-500 mt-1">If not uploading file</p>
+                  {projectFormData.imageUrl && !projectFormData.image && (
+                    <div className="mt-4">
+                      <p className="text-xs font-semibold text-gray-700 mb-2">Preview:</p>
+                      <img 
+                        src={projectFormData.imageUrl} 
+                        alt="Preview" 
+                        className="w-full h-48 object-cover rounded-lg border-2 border-gray-300"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
               

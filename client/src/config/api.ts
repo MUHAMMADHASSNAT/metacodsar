@@ -69,6 +69,11 @@ export const getImageUrl = (imagePath: string): string => {
     return imagePath;
   }
   
+  // If it's a base64 data URI, return as is
+  if (imagePath.startsWith('data:')) {
+    return imagePath;
+  }
+  
   // Build full URL
   const baseUrl = API_BASE_URL || (import.meta.env.DEV ? 'http://localhost:5001' : '');
   const path = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;

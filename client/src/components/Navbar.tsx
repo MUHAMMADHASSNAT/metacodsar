@@ -14,11 +14,11 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
-            <Link to="/" className="flex-shrink-0 flex items-center space-x-3 group">
-              <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-green-600 rounded-full flex items-center justify-center shadow-lg group-hover:shadow-emerald-500/50 transition-all">
-                <MetaCodSarLogo size={24} />
+            <Link to="/" className="flex-shrink-0 flex items-center space-x-2 sm:space-x-3 group">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-emerald-500 to-green-600 rounded-full flex items-center justify-center shadow-lg group-hover:shadow-emerald-500/50 transition-all">
+                <MetaCodSarLogo size={20} />
               </div>
-              <span className="text-2xl font-bold text-white">MetaCodsar</span>
+              <span className="text-lg sm:text-2xl font-bold text-white whitespace-nowrap">MetaCodsar</span>
             </Link>
           </div>
           

@@ -169,21 +169,21 @@ const Home = () => {
         
         <div className="relative max-w-7xl mx-auto px-4 text-center">
           {/* Logo */}
-          <div className="mb-12">
-            <div className="mx-auto w-48 h-48 bg-gradient-to-br from-emerald-500 to-green-600 rounded-full flex items-center justify-center shadow-2xl border-4 border-emerald-400 transform hover:scale-105 transition-all duration-500">
-              <div className="bg-white rounded-full p-6">
-                <MetaCodSarLogo size={100} />
+          <div className="mb-8 sm:mb-12">
+            <div className="mx-auto w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 bg-gradient-to-br from-emerald-500 to-green-600 rounded-full flex items-center justify-center shadow-2xl border-4 border-emerald-400 transform hover:scale-105 transition-all duration-500">
+              <div className="bg-white rounded-full p-3 sm:p-4 md:p-6">
+                <MetaCodSarLogo size={60} />
               </div>
             </div>
           </div>
           
-          <h1 className="text-7xl font-bold mb-8 bg-gradient-to-r from-emerald-600 via-green-600 to-emerald-700 bg-clip-text text-transparent animate-fade-in">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 sm:mb-8 bg-gradient-to-r from-emerald-600 via-green-600 to-emerald-700 bg-clip-text text-transparent animate-fade-in px-4">
             METACODSAR
           </h1>
-          <p className="text-4xl mb-6 italic text-emerald-700 font-serif animate-slide-up">
+          <p className="text-2xl sm:text-3xl md:text-4xl mb-4 sm:mb-6 italic text-emerald-700 font-serif animate-slide-up px-4">
             CODE FROM THE HEIGHTS
           </p>
-          <p className="text-2xl mb-4 max-w-4xl mx-auto text-gray-700 font-medium animate-slide-up">
+          <p className="text-lg sm:text-xl md:text-2xl mb-4 max-w-4xl mx-auto text-gray-700 font-medium animate-slide-up px-4">
             Where Professional Projects Live - Transforming Ideas into Digital Reality
           </p>
           
@@ -209,9 +209,9 @@ const Home = () => {
       {/* Interactive Stats Section */}
       <section className="py-24 bg-gradient-to-br from-slate-50 via-emerald-50 to-green-50 relative">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-20">
-            <h2 className="text-5xl font-bold text-gray-900 mb-6">Our Achievements</h2>
-            <p className="text-2xl text-gray-600 max-w-4xl mx-auto">
+          <div className="text-center mb-12 sm:mb-20 px-4">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4 sm:mb-6">Our Achievements</h2>
+            <p className="text-lg sm:text-xl md:text-2xl text-gray-600 max-w-4xl mx-auto">
               Numbers that speak for our commitment to excellence and client satisfaction
             </p>
           </div>
@@ -237,9 +237,9 @@ const Home = () => {
       {/* Enhanced Services Section */}
       <section className="py-24 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-20">
-            <h2 className="text-5xl font-bold text-white mb-6">Our Services</h2>
-            <p className="text-2xl text-slate-300 max-w-4xl mx-auto">
+          <div className="text-center mb-12 sm:mb-20 px-4">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-4 sm:mb-6">Our Services</h2>
+            <p className="text-lg sm:text-xl md:text-2xl text-slate-300 max-w-4xl mx-auto">
               Comprehensive solutions tailored to your business needs
             </p>
           </div>
@@ -264,9 +264,9 @@ const Home = () => {
       {/* Features Section */}
       <section className="py-24 bg-gradient-to-br from-slate-50 to-emerald-50">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-20">
-            <h2 className="text-5xl font-bold text-gray-900 mb-6">Why Choose Us?</h2>
-            <p className="text-2xl text-gray-600 max-w-4xl mx-auto">
+          <div className="text-center mb-12 sm:mb-20 px-4">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4 sm:mb-6">Why Choose Us?</h2>
+            <p className="text-lg sm:text-xl md:text-2xl text-gray-600 max-w-4xl mx-auto">
               We combine technical expertise with business understanding to deliver exceptional results
             </p>
           </div>
@@ -291,9 +291,9 @@ const Home = () => {
       {/* Enhanced Testimonials */}
       <section className="py-24 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-20">
-            <h2 className="text-5xl font-bold text-white mb-6">What Our Clients Say</h2>
-            <p className="text-2xl text-slate-300 max-w-4xl mx-auto">
+          <div className="text-center mb-12 sm:mb-20 px-4">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-4 sm:mb-6">What Our Clients Say</h2>
+            <p className="text-lg sm:text-xl md:text-2xl text-slate-300 max-w-4xl mx-auto">
               Don't just take our word for it - hear from our satisfied clients
             </p>
           </div>
@@ -310,7 +310,7 @@ const Home = () => {
                     <Star key={i} className="text-yellow-400 fill-current mx-1" size={28} />
                   ))}
                 </div>
-                <blockquote className="text-2xl text-slate-200 mb-8 italic leading-relaxed">
+                <blockquote className="text-lg sm:text-xl md:text-2xl text-slate-200 mb-6 sm:mb-8 italic leading-relaxed px-4">
                   "{testimonials[currentTestimonial].text}"
                 </blockquote>
                 <div className="flex items-center justify-center space-x-6">
@@ -348,7 +348,7 @@ const Home = () => {
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
             <div>
-              <h2 className="text-5xl font-bold text-white mb-8">About MetaCodsar</h2>
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-6 sm:mb-8">About MetaCodsar</h2>
               <div className="space-y-8 text-slate-300 leading-relaxed text-lg">
                 <p>
                   MetaCodsar was founded with a simple yet powerful vision: to create software solutions 
@@ -395,8 +395,8 @@ const Home = () => {
         </div>
         
         <div className="relative max-w-7xl mx-auto px-4 text-center">
-          <h2 className="text-5xl font-bold bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent mb-8">Ready to Start Your Project?</h2>
-          <p className="text-2xl text-slate-300 mb-12 max-w-4xl mx-auto">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent mb-6 sm:mb-8 px-4">Ready to Start Your Project?</h2>
+          <p className="text-lg sm:text-xl md:text-2xl text-slate-300 mb-8 sm:mb-12 max-w-4xl mx-auto px-4">
             Let's work together to bring your ideas to life with cutting-edge technology and innovative solutions.
           </p>
           <div className="flex flex-col sm:flex-row gap-6 justify-center">
