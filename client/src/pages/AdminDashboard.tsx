@@ -93,8 +93,8 @@ const AdminDashboard = () => {
     description: '',
     technologies: '',
     imageUrl: '',
-    image: null as File | null,
-    imagePreview: null as string | null,
+    images: [] as File[],
+    imagePreviews: [] as string[],
     githubUrl: '',
     category: ''
   });
@@ -416,8 +416,11 @@ const AdminDashboard = () => {
       formData.append('githubUrl', projectFormData.githubUrl);
       formData.append('category', projectFormData.category);
       
-      if (projectFormData.image) {
-        formData.append('image', projectFormData.image);
+      // Append multiple images
+      if (projectFormData.images.length > 0) {
+        projectFormData.images.forEach((image) => {
+          formData.append('images', image);
+        });
       } else if (projectFormData.imageUrl) {
         formData.append('imageUrl', projectFormData.imageUrl);
       }
@@ -478,13 +481,18 @@ const AdminDashboard = () => {
 
   const handleEditProject = (project: Project) => {
     setEditingProject(project);
+    // Handle both old format (imageUrl) and new format (images array)
+    const projectImages = (project as any).images && Array.isArray((project as any).images) && (project as any).images.length > 0
+      ? (project as any).images
+      : project.imageUrl ? [project.imageUrl] : [];
+    
     setProjectFormData({
       title: project.title,
       description: project.description,
       technologies: project.technologies.join(', '),
       imageUrl: project.imageUrl || '',
-      image: null,
-      imagePreview: project.imageUrl ? getImageUrl(project.imageUrl) : null,
+      images: [],
+      imagePreviews: projectImages.map((img: string) => getImageUrl(img)),
       githubUrl: project.githubUrl || '',
       category: project.category || 'web'
     });
@@ -497,8 +505,8 @@ const AdminDashboard = () => {
       description: '',
       technologies: '',
       imageUrl: '',
-      image: null,
-      imagePreview: null,
+      images: [],
+      imagePreviews: [],
       githubUrl: '',
       category: 'web'
     });
@@ -1405,66 +1413,95 @@ const AdminDashboard = () => {
                 />
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Project Image (Upload)</label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        setProjectFormData({ ...projectFormData, image: file, imageUrl: '' });
-                        // Create preview
-                        const reader = new FileReader();
-                        reader.onloadend = () => {
-                          setProjectFormData(prev => ({ ...prev, imagePreview: reader.result as string }));
-                        };
-                        reader.readAsDataURL(file);
-                      } else {
-                        setProjectFormData({ ...projectFormData, image: null });
-                      }
-                    }}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Upload project image</p>
-                  {projectFormData.image && (
-                    <div className="mt-4">
-                      <p className="text-xs font-semibold text-gray-700 mb-2">Preview:</p>
-                      <img 
-                        src={projectFormData.imagePreview || URL.createObjectURL(projectFormData.image)} 
-                        alt="Preview" 
-                        className="w-full h-48 object-cover rounded-lg border-2 border-gray-300"
-                      />
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Project Images (Optional - Multiple)</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    if (files.length > 0) {
+                      const newImages = [...projectFormData.images, ...files];
+                      setProjectFormData({ ...projectFormData, images: newImages, imageUrl: '' });
+                      
+                      // Create previews for all images
+                      const previewPromises = files.map((file) => {
+                        return new Promise<string>((resolve) => {
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            resolve(reader.result as string);
+                          };
+                          reader.readAsDataURL(file);
+                        });
+                      });
+                      
+                      Promise.all(previewPromises).then((newPreviews) => {
+                        setProjectFormData(prev => ({ 
+                          ...prev, 
+                          imagePreviews: [...prev.imagePreviews, ...newPreviews] 
+                        }));
+                      });
+                    }
+                  }}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <p className="text-xs text-gray-500 mt-1">You can upload multiple images. Works on mobile and laptop.</p>
+                
+                {projectFormData.images.length > 0 && (
+                  <div className="mt-4">
+                    <p className="text-xs font-semibold text-gray-700 mb-2">Selected Images ({projectFormData.images.length}):</p>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      {projectFormData.images.map((image, index) => (
+                        <div key={index} className="relative">
+                          <img 
+                            src={projectFormData.imagePreviews[index] || URL.createObjectURL(image)} 
+                            alt={`Preview ${index + 1}`} 
+                            className="w-full h-32 object-cover rounded-lg border-2 border-gray-300"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newImages = projectFormData.images.filter((_, i) => i !== index);
+                              const newPreviews = projectFormData.imagePreviews.filter((_, i) => i !== index);
+                              setProjectFormData({ ...projectFormData, images: newImages, imagePreviews: newPreviews });
+                            }}
+                            className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 transition-colors"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
                     </div>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Or Image URL</label>
-                  <input
-                    type="url"
-                    value={projectFormData.imageUrl}
-                    onChange={(e) => {
-                      setProjectFormData({ ...projectFormData, imageUrl: e.target.value, image: null });
-                    }}
-                    placeholder="https://example.com/image.jpg"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">If not uploading file</p>
-                  {projectFormData.imageUrl && !projectFormData.image && (
-                    <div className="mt-4">
-                      <p className="text-xs font-semibold text-gray-700 mb-2">Preview:</p>
-                      <img 
-                        src={projectFormData.imageUrl} 
-                        alt="Preview" 
-                        className="w-full h-48 object-cover rounded-lg border-2 border-gray-300"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
-                      />
-                    </div>
-                  )}
-                </div>
+                  </div>
+                )}
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Or Image URL (Optional)</label>
+                <input
+                  type="url"
+                  value={projectFormData.imageUrl}
+                  onChange={(e) => {
+                    setProjectFormData({ ...projectFormData, imageUrl: e.target.value, images: [], imagePreviews: [] });
+                  }}
+                  placeholder="https://example.com/image.jpg"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <p className="text-xs text-gray-500 mt-1">Alternative: Use image URL instead of uploading</p>
+                {projectFormData.imageUrl && projectFormData.images.length === 0 && (
+                  <div className="mt-4">
+                    <p className="text-xs font-semibold text-gray-700 mb-2">Preview:</p>
+                    <img 
+                      src={projectFormData.imageUrl} 
+                      alt="Preview" 
+                      className="w-full h-48 object-cover rounded-lg border-2 border-gray-300"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  </div>
+                )}
               </div>
               
               <div>

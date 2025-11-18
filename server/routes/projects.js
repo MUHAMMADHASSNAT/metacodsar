@@ -54,15 +54,22 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create new project (admin only)
-router.post('/', upload.single('image'), async (req, res) => {
+router.post('/', upload.array('images', 10), async (req, res) => {
   try {
     const { title, description, technologies, imageUrl, githubUrl, category } = req.body;
     
-    // Use uploaded file if available, otherwise use provided imageUrl
-    // Convert uploaded file to base64 data URI for Vercel serverless
+    // Handle multiple images upload
+    let projectImages = [];
+    if (req.files && req.files.length > 0) {
+      // Convert all uploaded files to base64 data URIs
+      projectImages = req.files.map(file => bufferToDataURI(file.buffer, file.mimetype));
+    }
+    
+    // For backward compatibility, also support single imageUrl
     let finalImageUrl = imageUrl;
-    if (req.file) {
-      finalImageUrl = bufferToDataURI(req.file.buffer, req.file.mimetype);
+    if (projectImages.length > 0 && !imageUrl) {
+      // Use first uploaded image as imageUrl for backward compatibility
+      finalImageUrl = projectImages[0];
     }
 
     const project = new Project({
@@ -70,6 +77,7 @@ router.post('/', upload.single('image'), async (req, res) => {
       description,
       technologies: Array.isArray(technologies) ? technologies : technologies.split(',').map(t => t.trim()),
       imageUrl: finalImageUrl,
+      images: projectImages.length > 0 ? projectImages : undefined,
       githubUrl,
       category: category || 'web',
       isActive: true
@@ -84,7 +92,7 @@ router.post('/', upload.single('image'), async (req, res) => {
 });
 
 // Update project (admin only)
-router.put('/:id', upload.single('image'), async (req, res) => {
+router.put('/:id', upload.array('images', 10), async (req, res) => {
   try {
     const { title, description, technologies, imageUrl, githubUrl, category } = req.body;
     
@@ -95,10 +103,15 @@ router.put('/:id', upload.single('image'), async (req, res) => {
       updateData.technologies = Array.isArray(technologies) ? technologies : technologies.split(',').map(t => t.trim());
     }
     
-    // Handle image upload
-    // Convert uploaded file to base64 data URI for Vercel serverless
-    if (req.file) {
-      updateData.imageUrl = bufferToDataURI(req.file.buffer, req.file.mimetype);
+    // Handle multiple images upload
+    if (req.files && req.files.length > 0) {
+      // Convert all uploaded files to base64 data URIs
+      const projectImages = req.files.map(file => bufferToDataURI(file.buffer, file.mimetype));
+      updateData.images = projectImages;
+      // Use first image as imageUrl for backward compatibility
+      if (projectImages.length > 0) {
+        updateData.imageUrl = projectImages[0];
+      }
     } else if (imageUrl !== undefined) {
       updateData.imageUrl = imageUrl;
     }

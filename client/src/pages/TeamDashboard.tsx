@@ -51,8 +51,8 @@ const TeamDashboard = () => {
     technologies: '',
     githubUrl: '',
     category: 'web',
-    image: null as File | null,
-    imagePreview: null as string | null
+    images: [] as File[],
+    imagePreviews: [] as string[]
   });
 
   const [userProjects, setUserProjects] = useState<Project[]>([]);
@@ -217,8 +217,11 @@ const TeamDashboard = () => {
       formData.append('githubUrl', projectData.githubUrl);
       formData.append('category', projectData.category);
       formData.append('teamMember', user?.name || '');
-      if (projectData.image) {
-        formData.append('image', projectData.image);
+      // Append multiple images
+      if (projectData.images.length > 0) {
+        projectData.images.forEach((image) => {
+          formData.append('images', image);
+        });
       }
 
       const response = await fetch(`${API_BASE_URL}/api/projects`, {
@@ -237,8 +240,8 @@ const TeamDashboard = () => {
           technologies: '',
           githubUrl: '',
           category: 'web',
-          image: null,
-          imagePreview: null
+          images: [],
+          imagePreviews: []
         });
         setShowProjectForm(false);
       }
@@ -667,35 +670,65 @@ const TeamDashboard = () => {
               </div>
               
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Project Image *</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Project Images (Optional - Multiple)</label>
                 <input
                   type="file"
                   accept="image/*"
+                  multiple
                   onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      setProjectData({ ...projectData, image: file });
-                      // Create preview
-                      const reader = new FileReader();
-                      reader.onloadend = () => {
-                        setProjectData(prev => ({ ...prev, imagePreview: reader.result as string }));
-                      };
-                      reader.readAsDataURL(file);
-                    } else {
-                      setProjectData({ ...projectData, image: null, imagePreview: null });
+                    const files = Array.from(e.target.files || []);
+                    if (files.length > 0) {
+                      const newImages = [...projectData.images, ...files];
+                      setProjectData({ ...projectData, images: newImages });
+                      
+                      // Create previews for all images
+                      const previewPromises = files.map((file) => {
+                        return new Promise<string>((resolve) => {
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            resolve(reader.result as string);
+                          };
+                          reader.readAsDataURL(file);
+                        });
+                      });
+                      
+                      Promise.all(previewPromises).then((newPreviews) => {
+                        setProjectData(prev => ({ 
+                          ...prev, 
+                          imagePreviews: [...prev.imagePreviews, ...newPreviews] 
+                        }));
+                      });
                     }
                   }}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
-                <p className="text-xs text-gray-500 mt-1">Upload project image</p>
-                {projectData.image && projectData.imagePreview && (
+                <p className="text-xs text-gray-500 mt-1">You can upload multiple images. Works on mobile and laptop.</p>
+                
+                {projectData.images.length > 0 && (
                   <div className="mt-4">
-                    <p className="text-xs font-semibold text-gray-700 mb-2">Preview:</p>
-                    <img 
-                      src={projectData.imagePreview} 
-                      alt="Preview" 
-                      className="w-full h-48 object-cover rounded-lg border-2 border-gray-300"
-                    />
+                    <p className="text-xs font-semibold text-gray-700 mb-2">Selected Images ({projectData.images.length}):</p>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      {projectData.images.map((image, index) => (
+                        <div key={index} className="relative">
+                          <img 
+                            src={projectData.imagePreviews[index] || URL.createObjectURL(image)} 
+                            alt={`Preview ${index + 1}`} 
+                            className="w-full h-32 object-cover rounded-lg border-2 border-gray-300"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newImages = projectData.images.filter((_, i) => i !== index);
+                              const newPreviews = projectData.imagePreviews.filter((_, i) => i !== index);
+                              setProjectData({ ...projectData, images: newImages, imagePreviews: newPreviews });
+                            }}
+                            className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 transition-colors"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
